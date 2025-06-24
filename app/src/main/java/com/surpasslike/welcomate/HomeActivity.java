@@ -4,6 +4,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.view.LayoutInflater;
@@ -25,7 +26,6 @@ public class HomeActivity extends AppCompatActivity {
         View view = binding.getRoot();
         setContentView(view);
 
-
         String username = getIntent().getStringExtra("username");
 
         String welcomeMessage = "Welcome，" + username + "!";
@@ -44,10 +44,18 @@ public class HomeActivity extends AppCompatActivity {
                 showDeleteUserDialog(username);
             }
         });
+
+        binding.btnSetting.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(HomeActivity.this, com.surpasslike.setting.SettingActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     // 获取已经绑定的AdminService对象
-    IAdminService adminService = MainActivity.getAdminService();
+    IAdminService adminService = com.surpasslike.welcomate.MainActivity.getAdminService();
 
     private void showChangePasswordDialog(final String username) {
         // 创建对话框以更改所选用户的密码
