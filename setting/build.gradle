@@ -1,17 +1,23 @@
 plugins {
-    alias(libs.plugins.android.application)
+//    alias(libs.plugins.android.application)
+//    alias(libs.plugins.kotlin.android)
+
+    // 不会生成独立 APK，只能被其他模块依赖、启动（作为依赖库）
+    id 'com.android.library'  // 使用标准的库插件
+    id 'kotlin-android'
 }
 
 android {
-    namespace 'com.surpasslike.welcomate'
+    namespace 'com.surpasslike.setting'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.surpasslike.welcomate"
+//        不需要 applicationId，因为它只在主 App 模块中设置
+//        applicationId "com.surpasslike.setting"
         minSdk 34
         targetSdk 34
-        versionCode 20250413
-        versionName "1.0.0"
+        versionCode 1
+        versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -26,27 +32,14 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    viewBinding{
-        enabled = true
-    }
-    dataBinding {
-        enabled = true
-    }
-    buildFeatures {
-        aidl true
-        viewBinding true
-    }
-    sourceSets {
-        main {
-            aidl.srcDirs = ['src/main/aidl', 'src/main/java']
-        }
+    kotlinOptions {
+        jvmTarget = '1.8'
     }
 }
 
 dependencies {
-    // 此两项打开为源码依赖入app工程
-    implementation project(path: ':setting')
-    implementation libs.eventbus
+
+    implementation libs.core.ktx
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
