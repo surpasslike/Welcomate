@@ -9,11 +9,13 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
+import com.surpasslike.welcomate.service.UserService;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomateservice.IAdminService;
 
@@ -29,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
 
     // AdminService实例，用于与服务端通信
     static IAdminService mAdminService;
+    
+    // UserService实例，统一管理本地和远程用户操作
+    static UserService mUserService;
 
     // 服务连接对象，用于处理服务绑定和解绑
     private ServiceConnection mServiceConnection = new ServiceConnection() {
@@ -41,6 +46,21 @@ public class MainActivity extends AppCompatActivity {
         public void onServiceConnected(ComponentName name, IBinder service) {
             // 绑定成功时调用，获取AdminService的代理对象
             mAdminService = IAdminService.Stub.asInterface(service);
+            Log.d(TAG, "AdminService connected successfully");
+            Log.d(TAG, "AdminService object: " + (mAdminService != null ? "NOT NULL" : "NULL"));
+            ToastUtils.showShort(MainActivity.this, "服务连接成功");
+            
+            // 更新UserService的远程服务引用
+            if (mUserService != null) {
+                Log.d(TAG, "Setting remote service to UserService...");
+                mUserService.setRemoteService(mAdminService);
+                Log.d(TAG, "Remote service set to UserService successfully");
+                Log.d(TAG, "UserService remote availability: " + mUserService.isRemoteServiceAvailable());
+                
+                // 设置远程服务会自动触发双向同步
+            } else {
+                Log.e(TAG, "UserService is null!");
+            }
         }
 
         /**
@@ -50,7 +70,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceDisconnected(ComponentName name) {
             // 解绑时调用
+            Log.d(TAG, "AdminService disconnected");
             mAdminService = null;
+            // 清除UserService的远程服务引用
+            if (mUserService != null) {
+                mUserService.setRemoteService(null);
+            }
         }
     };
 
@@ -64,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // 初始化UserService
+        mUserService = new UserService(this);
+        
         // 绑定AdminService服务
         bindAdminService();
 
@@ -113,14 +141,21 @@ public class MainActivity extends AppCompatActivity {
      * 用于与服务端进行通信
      */
     private void bindAdminService() {
+        Log.d(TAG, "Attempting to bind AdminService...");
         Intent intent = new Intent();
         intent.setComponent(new ComponentName(AppConstants.Service.ADMIN_SERVICE_PACKAGE, AppConstants.Service.ADMIN_SERVICE_CLASS));
+        
+        Log.d(TAG, "Service package: " + AppConstants.Service.ADMIN_SERVICE_PACKAGE);
+        Log.d(TAG, "Service class: " + AppConstants.Service.ADMIN_SERVICE_CLASS);
 
         boolean isServiceBound = bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        if (isServiceBound) {
-            ToastUtils.showShort(this, R.string.service_bound_success);
-        } else {
+        Log.d(TAG, "Bind service result: " + isServiceBound);
+        
+        if (!isServiceBound) {
+            Log.e(TAG, "Failed to bind AdminService!");
             ToastUtils.showShort(this, R.string.service_bind_failed);
+        } else {
+            Log.d(TAG, "AdminService bind initiated successfully");
         }
     }
 
@@ -143,5 +178,14 @@ public class MainActivity extends AppCompatActivity {
      */
     public static IAdminService getAdminService() {
         return mAdminService;
+    }
+    
+    /**
+     * 静态方法，用于获取UserService对象
+     *
+     * @return UserService实例
+     */
+    public static UserService getUserService() {
+        return mUserService;
     }
 }

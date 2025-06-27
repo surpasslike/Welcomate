@@ -15,9 +15,9 @@ import android.widget.EditText;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityHomeBinding;
+import com.surpasslike.welcomate.service.UserService;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
-import com.surpasslike.welcomateservice.IAdminService;
 
 /**
  * 用户主页面
@@ -31,8 +31,8 @@ public class HomeActivity extends AppCompatActivity {
     // 视图绑定对象
     private ActivityHomeBinding mActivityHomeBinding;
     
-    // AdminService实例
-    private IAdminService mAdminService;
+    // UserService实例
+    private UserService mUserService;
 
     /**
      * 活动创建时的初始化方法
@@ -47,8 +47,8 @@ public class HomeActivity extends AppCompatActivity {
         // 获取传递的用户名
         String username = getIntent().getStringExtra(AppConstants.IntentExtra.USERNAME);
         
-        // 获取AdminService实例
-        mAdminService = MainActivity.getAdminService();
+        // 获取UserService实例
+        mUserService = MainActivity.getUserService();
         
         // 初始化界面
         initViews(username);
@@ -165,12 +165,11 @@ public class HomeActivity extends AppCompatActivity {
      * @param newPassword 新密码
      */
     private void changeUserPassword(String username, String newPassword) {
-        if (mAdminService != null) {
-            try {
-                mAdminService.updateUserPassword(username, newPassword);
+        if (mUserService != null) {
+            boolean success = mUserService.updatePassword(username, newPassword);
+            if (success) {
                 ToastUtils.showShort(this, getString(R.string.password_changed, username));
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to update password", e);
+            } else {
                 ToastUtils.showShort(this, R.string.service_not_available);
             }
         } else {
@@ -211,13 +210,12 @@ public class HomeActivity extends AppCompatActivity {
      * @param username 要删除的用户名
      */
     private void deleteUser(String username) {
-        if (mAdminService != null) {
-            try {
-                mAdminService.deleteUser(username);
+        if (mUserService != null) {
+            boolean success = mUserService.deleteUser(username);
+            if (success) {
                 ToastUtils.showShort(this, R.string.user_deleted);
                 finish(); // 删除成功后关闭当前页面
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to delete user", e);
+            } else {
                 ToastUtils.showShort(this, R.string.service_not_available);
             }
         } else {

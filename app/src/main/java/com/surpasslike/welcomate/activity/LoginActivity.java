@@ -11,9 +11,9 @@ import android.view.View;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityLoginBinding;
+import com.surpasslike.welcomate.service.UserService;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
-import com.surpasslike.welcomateservice.IAdminService;
 
 /**
  * 用户登录页面
@@ -67,17 +67,12 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
         
-        // 获取已经绑定的AdminService对象
-        IAdminService adminService = MainActivity.getAdminService();
+        // 获取UserService对象
+        UserService userService = MainActivity.getUserService();
         
-        if (adminService != null) {
-            try {
-                String username = adminService.loginAdmin(account, password);
-                handleLoginResult(username);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Remote service call failed", e);
-                ToastUtils.showShort(this, R.string.service_not_available);
-            }
+        if (userService != null) {
+            String username = userService.login(account, password);
+            handleLoginResult(username);
         } else {
             ToastUtils.showShort(this, R.string.service_not_available);
         }

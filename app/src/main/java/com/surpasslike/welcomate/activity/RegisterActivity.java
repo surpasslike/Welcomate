@@ -10,9 +10,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityRegisterBinding;
+import com.surpasslike.welcomate.service.UserService;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
-import com.surpasslike.welcomateservice.IAdminService;
 
 /**
  * 用户注册页面
@@ -26,8 +26,8 @@ public class RegisterActivity extends AppCompatActivity {
     // 视图绑定对象
     private ActivityRegisterBinding mActivityRegisterBinding;
     
-    // AdminService实例
-    private IAdminService mAdminService;
+    // UserService实例
+    private UserService mUserService;
 
     /**
      * 活动创建时的初始化方法
@@ -39,8 +39,9 @@ public class RegisterActivity extends AppCompatActivity {
         mActivityRegisterBinding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(mActivityRegisterBinding.getRoot());
 
-        // 获取AdminService实例
-        mAdminService = MainActivity.getAdminService();
+        // 获取UserService实例
+        mUserService = MainActivity.getUserService();
+        Log.d(TAG, "UserService from MainActivity: " + (mUserService != null ? "NOT NULL" : "NULL"));
         
         // 初始化界面
         initViews();
@@ -141,15 +142,14 @@ public class RegisterActivity extends AppCompatActivity {
      * @param password 密码
      */
     private void registerUser(String username, String account, String password) {
-        if (mAdminService != null) {
-            try {
-                boolean isRegistered = mAdminService.registerUser(username, account, password);
-                handleRegisterResult(isRegistered);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Remote service call failed", e);
-                ToastUtils.showShort(this, R.string.service_not_available);
-            }
+        if (mUserService != null) {
+            Log.d(TAG, "Starting registration for user: " + username + ", account: " + account);
+            Log.d(TAG, "Remote service available: " + mUserService.isRemoteServiceAvailable());
+            boolean isRegistered = mUserService.register(username, account, password);
+            Log.d(TAG, "Registration result: " + isRegistered);
+            handleRegisterResult(isRegistered);
         } else {
+            Log.e(TAG, "UserService is null!");
             ToastUtils.showShort(this, R.string.service_not_available);
         }
     }
