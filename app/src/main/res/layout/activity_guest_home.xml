@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="Welcome, Guest!"
+        android:text="@string/welcome_guest"
         android:textSize="24sp"
         android:textStyle="bold" />
 
@@ -20,13 +20,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Setting" />
+        android:text="@string/button_setting" />
 
     <Button
         android:id="@+id/btnBackToMain"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Back to Main" />
+        android:text="@string/button_back_to_main" />
 
 </LinearLayout>

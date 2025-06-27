@@ -9,7 +9,7 @@
         android:id="@+id/etAccount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Account"
+        android:hint="@string/hint_account"
         android:inputType="text" />
 
     <EditText
@@ -17,7 +17,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Password"
+        android:hint="@string/hint_password"
         android:inputType="textPassword" />
 
     <Button
@@ -25,6 +25,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Login" />
+        android:text="@string/button_login" />
 
 </LinearLayout>
