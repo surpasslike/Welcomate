@@ -1,0 +1,60 @@
+<resources>
+    <!-- App Basic Info -->
+    <string name="app_name">Welcomate</string>
+    
+    <!-- Main Activity -->
+    <string name="button_login">Login</string>
+    <string name="button_register">Register</string>
+    <string name="button_guest">Continue as Guest</string>
+    
+    <!-- Login Activity -->
+    <string name="hint_account">Account</string>
+    <string name="hint_password">Password</string>
+    <string name="login_success">Login successful!</string>
+    <string name="login_failed">Login failed! Please check your account and password.</string>
+    <string name="service_not_available">AdminService not available. Please try again later.</string>
+    
+    <!-- Register Activity -->
+    <string name="hint_username">Username</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="register_success">Registration successful!</string>
+    <string name="register_failed">Registration failed! Please try again.</string>
+    <string name="password_not_match">Passwords do not match!</string>
+    <string name="invalid_input">Please fill in all fields correctly!</string>
+    
+    <!-- Home Activity -->
+    <string name="welcome_message">Welcome, %1$s!</string>
+    <string name="button_change_password">Change Password</string>
+    <string name="button_delete_user">Delete User</string>
+    <string name="button_setting">Setting</string>
+    <string name="button_logout">Logout</string>
+    
+    <!-- Guest Home Activity -->
+    <string name="welcome_guest">Welcome, Guest!</string>
+    <string name="button_back_to_main">Back to Main</string>
+    
+    <!-- Change Password Dialog -->
+    <string name="dialog_change_password_title">Change Password for %1$s</string>
+    <string name="hint_new_password">New Password</string>
+    <string name="button_confirm">Confirm</string>
+    <string name="button_cancel">Cancel</string>
+    <string name="password_changed">Password changed for %1$s</string>
+    
+    <!-- Delete User Dialog -->
+    <string name="dialog_delete_user_title">Confirm deletion of current user?</string>
+    <string name="dialog_delete_user_message">After deletion, the current user will not be able to access the app.</string>
+    <string name="button_yes">Yes</string>
+    <string name="button_no">No</string>
+    <string name="user_deleted">User deleted</string>
+    
+    <!-- Service Messages -->
+    <string name="service_bound_success">AdminService bound successfully!</string>
+    <string name="service_bind_failed">Failed to bind AdminService. Please try again later.</string>
+    
+    <!-- Validation Messages -->
+    <string name="username_too_short">Username must be at least %1$d characters</string>
+    <string name="username_too_long">Username must be less than %1$d characters</string>
+    <string name="password_too_short">Password must be at least %1$d characters</string>
+    <string name="password_too_long">Password must be less than %1$d characters</string>
+    <string name="account_empty">Account cannot be empty</string>
+</resources>

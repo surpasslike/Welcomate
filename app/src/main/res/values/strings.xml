@@ -1,3 +1,60 @@
 <resources>
+    <!-- App Basic Info -->
     <string name="app_name">Welcomate</string>
+    
+    <!-- Main Activity -->
+    <string name="button_login">登录</string>
+    <string name="button_register">注册</string>
+    <string name="button_guest">游客继续</string>
+    
+    <!-- Login Activity -->
+    <string name="hint_account">账号</string>
+    <string name="hint_password">密码</string>
+    <string name="login_success">登录成功！</string>
+    <string name="login_failed">登录失败！请检查您的账号和密码。</string>
+    <string name="service_not_available">管理服务不可用，请稍后重试。</string>
+    
+    <!-- Register Activity -->
+    <string name="hint_username">用户名</string>
+    <string name="hint_confirm_password">确认密码</string>
+    <string name="register_success">注册成功！</string>
+    <string name="register_failed">注册失败！请重试。</string>
+    <string name="password_not_match">密码不匹配！</string>
+    <string name="invalid_input">请正确填写所有字段！</string>
+    
+    <!-- Home Activity -->
+    <string name="welcome_message">欢迎，%1$s！</string>
+    <string name="button_change_password">修改密码</string>
+    <string name="button_delete_user">删除用户</string>
+    <string name="button_setting">设置</string>
+    <string name="button_logout">退出登录</string>
+    
+    <!-- Guest Home Activity -->
+    <string name="welcome_guest">欢迎，游客！</string>
+    <string name="button_back_to_main">返回主页</string>
+    
+    <!-- Change Password Dialog -->
+    <string name="dialog_change_password_title">为 %1$s 修改密码</string>
+    <string name="hint_new_password">新密码</string>
+    <string name="button_confirm">确认</string>
+    <string name="button_cancel">取消</string>
+    <string name="password_changed">已为 %1$s 修改密码</string>
+    
+    <!-- Delete User Dialog -->
+    <string name="dialog_delete_user_title">确认删除当前用户？</string>
+    <string name="dialog_delete_user_message">删除后当前用户将无法访问应用。</string>
+    <string name="button_yes">是</string>
+    <string name="button_no">否</string>
+    <string name="user_deleted">用户已删除</string>
+    
+    <!-- Service Messages -->
+    <string name="service_bound_success">管理服务绑定成功！</string>
+    <string name="service_bind_failed">管理服务绑定失败，请稍后重试。</string>
+    
+    <!-- Validation Messages -->
+    <string name="username_too_short">用户名至少需要 %1$d 个字符</string>
+    <string name="username_too_long">用户名不能超过 %1$d 个字符</string>
+    <string name="password_too_short">密码至少需要 %1$d 个字符</string>
+    <string name="password_too_long">密码不能超过 %1$d 个字符</string>
+    <string name="account_empty">账号不能为空</string>
 </resources>
