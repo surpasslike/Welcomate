@@ -22,6 +22,21 @@ import com.surpasslike.welcomateservice.IAdminService;
 
 import java.util.List;
 
+/**
+ * 用户服务管理类 - 客户端核心业务逻辑
+ * 
+ * 功能职责：
+ * 1. 统一管理本地数据库A和服务端数据库B的双向同步
+ * 2. 提供离线优先的用户操作接口（注册、登录、改密、删除）
+ * 3. 智能选择本地模式或远程模式执行操作
+ * 4. 实现批量同步和直接通知的双重保障机制
+ * 5. 管理与服务端的连接状态和生命周期
+ * 
+ * 同步策略：
+ * - 服务端可用时：先写服务端B，再写本地A，确保数据一致性
+ * - 服务端不可用时：先写本地A，然后通过直接通知+批量队列双重机制同步到服务端
+ * - 启动时：执行双向同步，合并本地A和服务端B的数据
+ */
 public class UserService {
     private static final String TAG = "UserService";
     
@@ -32,6 +47,11 @@ public class UserService {
     private BatchSyncManager batchSyncManager;
     private SyncCache syncCache;
     
+    /**
+     * 构造函数 - 初始化用户服务
+     * 
+     * @param context Android上下文，用于数据库操作和服务绑定
+     */
     public UserService(Context context) {
         this.context = context;
         this.localUserManager = LocalUserManager.getInstance(context);
@@ -40,6 +60,12 @@ public class UserService {
         this.syncCache = SyncCache.getInstance();
     }
     
+    /**
+     * 设置远程服务连接
+     * 当MainActivity成功连接到服务端时调用，会自动触发双向同步
+     * 
+     * @param remoteService 服务端AIDL接口实例，为null表示连接断开
+     */
     public void setRemoteService(IAdminService remoteService) {
         this.remoteService = remoteService;
         if (remoteService != null) {
@@ -48,14 +74,26 @@ public class UserService {
         }
     }
     
+    /**
+     * 检查远程服务是否可用
+     * 
+     * @return true表示可以直接调用服务端接口，false表示需要离线模式
+     */
     public boolean isRemoteServiceAvailable() {
         return remoteService != null;
     }
     
     /**
-     * 登录逻辑：
-     * - 如果服务端可用：以服务端为准
-     * - 如果服务端不可用：使用本地数据A
+     * 用户登录验证
+     * 
+     * 登录策略：
+     * - 服务端可用：优先使用服务端数据库B验证，确保最新状态
+     * - 服务端不可用：使用本地数据库A验证，支持离线登录
+     * - 连接异常：自动降级到本地验证
+     * 
+     * @param account 用户账号
+     * @param password 用户密码
+     * @return 登录成功返回用户名，失败返回null
      */
     public String login(String account, String password) {
         Log.d(TAG, "Login attempt for account: " + account);
@@ -89,9 +127,20 @@ public class UserService {
     }
     
     /**
-     * 注册逻辑：
-     * - 如果服务端可用：同时写入A和B
-     * - 如果服务端不可用：只写入本地A
+     * 用户注册
+     * 
+     * 注册策略：
+     * - 服务端可用：双向写入（先写服务端B，再写本地A），确保数据一致性
+     * - 服务端不可用：先写本地A，然后通过直接通知+批量队列双重机制同步到服务端
+     * 
+     * 同步保障：
+     * 1. 直接通知：立即尝试连接服务端并注册
+     * 2. 批量队列：作为备用机制，确保数据最终一致性
+     * 
+     * @param username 用户名
+     * @param account 用户账号
+     * @param password 用户密码
+     * @return 注册成功返回true，失败返回false
      */
     public boolean register(String username, String account, String password) {
         Log.d(TAG, "Register user: " + username + ", account: " + account);
@@ -138,9 +187,15 @@ public class UserService {
     }
     
     /**
-     * 修改密码逻辑：
-     * - 如果服务端可用：同时修改A和B
-     * - 如果服务端不可用：只修改本地A
+     * 修改用户密码
+     * 
+     * 修改策略：
+     * - 服务端可用：先修改服务端B，再修改本地A，并额外通知AdminDashboard刷新
+     * - 服务端不可用：先修改本地A，然后通过直接通知+批量队列双重机制同步到服务端
+     * 
+     * @param username 用户名
+     * @param newPassword 新密码
+     * @return 修改成功返回true，失败返回false
      */
     public boolean updatePassword(String username, String newPassword) {
         Log.d(TAG, "Update password for user: " + username);
@@ -186,9 +241,14 @@ public class UserService {
     }
     
     /**
-     * 删除用户逻辑：
-     * - 如果服务端可用：同时删除A和B
-     * - 如果服务端不可用：只删除本地A
+     * 删除用户
+     * 
+     * 删除策略：
+     * - 服务端可用：先删除服务端B，再删除本地A，并额外通知AdminDashboard刷新
+     * - 服务端不可用：先删除本地A，然后通过直接通知+批量队列双重机制同步到服务端
+     * 
+     * @param username 要删除的用户名
+     * @return 删除成功返回true，失败返回false
      */
     public boolean deleteUser(String username) {
         Log.d(TAG, "Delete user: " + username);
@@ -229,8 +289,14 @@ public class UserService {
     }
     
     /**
-     * 当服务端连接时执行的双向同步：
-     * 把本地数据A和服务端数据B同步到一起
+     * 执行双向同步
+     * 当服务端连接建立时自动调用，将本地数据A和服务端数据B合并同步
+     * 
+     * 同步流程：
+     * 1. 把本地未同步的数据推送到服务端（A -> B）
+     * 2. 检查服务端的数据变化并更新本地（B -> A）
+     * 
+     * 异步执行，不阻塞主线程
      */
     private void performBidirectionalSync() {
         if (!isRemoteServiceAvailable()) {
@@ -257,7 +323,9 @@ public class UserService {
     }
     
     /**
-     * 同步本地A到服务端B
+     * 同步本地数据到服务端（A -> B）
+     * 获取本地所有未同步的用户数据，逐个推送到服务端
+     * 推送成功后标记为已同步，避免重复操作
      */
     private void syncLocalToServer() {
         try {
@@ -285,7 +353,9 @@ public class UserService {
     }
     
     /**
-     * 同步服务端B到本地A
+     * 同步服务端数据到本地（B -> A）
+     * 检查本地用户在服务端是否还存在，如果服务端已删除则同步删除本地数据
+     * 确保本地数据与服务端保持一致
      */
     private void syncServerToLocal() {
         try {
@@ -356,7 +426,9 @@ public class UserService {
     }
     
     /**
-     * 按需同步 - 仅在有服务端连接时执行
+     * 按需同步
+     * 仅在服务端连接可用时执行双向同步
+     * 通常在关键操作完成后调用，确保数据一致性
      */
     private void performOnDemandSync() {
         if (isRemoteServiceAvailable()) {
@@ -368,7 +440,9 @@ public class UserService {
     }
     
     /**
-     * 尝试连接服务端并同步（用于服务端不可用时的主动连接）
+     * 尝试连接服务端并同步
+     * 当检测到服务端不可用时，主动尝试重新连接并执行同步
+     * 使用WeakServiceConnection确保连接安全，避免内存泄漏
      */
     private void tryConnectAndSync() {
         if (isRemoteServiceAvailable()) {

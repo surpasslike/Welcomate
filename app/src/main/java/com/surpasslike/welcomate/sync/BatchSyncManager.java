@@ -43,6 +43,9 @@ public class BatchSyncManager {
     
     /**
      * 添加同步操作到队列
+     * 会先检查缓存，避免重复添加相同的操作
+     * 
+     * @param operation 要添加的同步操作
      */
     public void addSyncOperation(SyncOperation operation) {
         // 检查缓存，避免重复操作
@@ -61,6 +64,10 @@ public class BatchSyncManager {
     
     /**
      * 执行批量同步
+     * 收集队列中的操作并批量发送到服务端，提高同步效率
+     * 使用线程安全的方式确保同一时间只有一个批量同步在执行
+     * 
+     * @param context Android上下文，用于服务绑定
      */
     public void executeBatchSync(Context context) {
         if (isSyncing.getAndSet(true)) {

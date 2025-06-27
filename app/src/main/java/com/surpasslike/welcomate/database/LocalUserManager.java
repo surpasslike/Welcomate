@@ -12,6 +12,31 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 本地用户数据管理器 - 客户端数据库A管理类
+ * 
+ * 功能职责：
+ * 1. 管理客户端本地SQLite数据库（数据库A）
+ * 2. 提供用户数据的CRUD操作（增删改查）
+ * 3. 维护用户同步状态，跟踪哪些数据已与服务端同步
+ * 4. 支持密码的哈希存储和明文备份（用于同步）
+ * 5. 提供单例模式，确保全局唯一实例
+ * 
+ * 数据表结构：
+ * - id: 主键
+ * - username: 用户名
+ * - account: 用户账号
+ * - password: 哈希后的密码（用于本地验证）
+ * - raw_password: 明文密码（用于同步到服务端）
+ * - is_synced: 同步状态（0=未同步，1=已同步）
+ * - created_time: 创建时间
+ * - updated_time: 更新时间
+ * 
+ * 同步机制：
+ * - 新用户默认未同步状态，等待推送到服务端
+ * - 同步成功后标记为已同步，避免重复操作
+ * - 支持获取未同步用户列表，用于批量同步
+ */
 public class LocalUserManager extends SQLiteOpenHelper {
     private static final String TAG = "LocalUserManager";
     
@@ -30,10 +55,22 @@ public class LocalUserManager extends SQLiteOpenHelper {
     
     private static LocalUserManager instance;
     
+    /**
+     * 私有构造函数 - 单例模式
+     * 
+     * @param context Android上下文
+     */
     private LocalUserManager(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
     
+    /**
+     * 获取单例实例
+     * 确保全局只有一个LocalUserManager实例，避免数据库连接冲突
+     * 
+     * @param context Android上下文
+     * @return LocalUserManager单例实例
+     */
     public static synchronized LocalUserManager getInstance(Context context) {
         if (instance == null) {
             instance = new LocalUserManager(context.getApplicationContext());
@@ -41,6 +78,12 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return instance;
     }
     
+    /**
+     * 数据库首次创建时的回调
+     * 创建用户表，定义表结构和索引
+     * 
+     * @param db SQLite数据库实例
+     */
     @Override
     public void onCreate(SQLiteDatabase db) {
         String createTableQuery = "CREATE TABLE " + TABLE_USERS + " (" +
@@ -57,12 +100,27 @@ public class LocalUserManager extends SQLiteOpenHelper {
         Log.d(TAG, "Local users table created");
     }
     
+    /**
+     * 数据库版本升级时的回调
+     * 处理数据表结构的变更和数据迁移
+     * 
+     * @param db SQLite数据库实例
+     * @param oldVersion 旧版本号
+     * @param newVersion 新版本号
+     */
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         onCreate(db);
     }
     
+    /**
+     * 密码哈希处理
+     * 使用SHA-256算法对密码进行不可逆加密，确保本地存储安全
+     * 
+     * @param password 明文密码
+     * @return 哈希后的密码字符串
+     */
     private String hashPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -78,6 +136,15 @@ public class LocalUserManager extends SQLiteOpenHelper {
         }
     }
     
+    /**
+     * 用户注册
+     * 在本地数据库A中创建新用户记录，默认为未同步状态
+     * 
+     * @param username 用户名（必须唯一）
+     * @param account 用户账号（必须唯一）
+     * @param password 用户密码（明文）
+     * @return 注册成功返回true，失败返回false
+     */
     public boolean registerUser(String username, String account, String password) {
         SQLiteDatabase db = this.getWritableDatabase();
         try {
@@ -103,6 +170,14 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return false;
     }
     
+    /**
+     * 用户登录验证
+     * 使用哈希密码在本地数据库A中验证用户身份
+     * 
+     * @param account 用户账号
+     * @param password 用户密码（明文）
+     * @return 登录成功返回用户名，失败返回null
+     */
     public String loginUser(String account, String password) {
         SQLiteDatabase db = this.getReadableDatabase();
         try {
@@ -128,6 +203,14 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return null;
     }
     
+    /**
+     * 更新用户密码
+     * 更新本地数据库A中用户的密码，同时重置同步状态
+     * 
+     * @param username 用户名
+     * @param newPassword 新密码（明文）
+     * @return 更新成功返回true，失败返回false
+     */
     public boolean updateUserPassword(String username, String newPassword) {
         SQLiteDatabase db = this.getWritableDatabase();
         try {
@@ -153,6 +236,13 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return false;
     }
     
+    /**
+     * 删除用户
+     * 从本地数据库A中删除指定用户的记录
+     * 
+     * @param username 要删除的用户名
+     * @return 删除成功返回true，失败返回false
+     */
     public boolean deleteUser(String username) {
         SQLiteDatabase db = this.getWritableDatabase();
         try {
@@ -172,6 +262,14 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return false;
     }
     
+    /**
+     * 按账号删除用户
+     * 根据用户账号从本地数据库A中删除用户记录
+     * 主要用于同步时删除服务端已删除的用户
+     * 
+     * @param account 用户账号
+     * @return 删除成功返回true，失败返回false
+     */
     public boolean deleteUserByAccount(String account) {
         SQLiteDatabase db = this.getWritableDatabase();
         try {
@@ -191,6 +289,12 @@ public class LocalUserManager extends SQLiteOpenHelper {
         return false;
     }
     
+    /**
+     * 获取未同步的用户列表
+     * 返回所有is_synced=0的用户，用于批量同步到服务端
+     * 
+     * @return 未同步用户的列表
+     */
     public List<LocalUser> getUnsyncedUsers() {
         List<LocalUser> unsyncedUsers = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();

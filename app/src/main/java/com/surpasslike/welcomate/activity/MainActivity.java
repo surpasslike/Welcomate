@@ -20,9 +20,18 @@ import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomateservice.IAdminService;
 
 /**
- * 主活动页面
- * 提供用户登录、注册和游客模式的入口
- * 负责绑定AdminService服务
+ * 主活动页面 - 应用程序入口
+ * 
+ * 功能职责：
+ * 1. 提供用户登录、注册和游客模式的入口界面
+ * 2. 负责绑定服务端AdminService，建立AIDL连接
+ * 3. 初始化UserService，管理本地和远程服务的生命周期
+ * 4. 自动触发双向数据同步（当服务端连接成功时）
+ * 
+ * 连接流程：
+ * - onCreate: 初始化UserService并尝试绑定服务端
+ * - onServiceConnected: 连接成功后设置远程服务，自动触发同步
+ * - onServiceDisconnected: 连接断开时清理远程服务引用
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -48,8 +57,7 @@ public class MainActivity extends AppCompatActivity {
             mAdminService = IAdminService.Stub.asInterface(service);
             Log.d(TAG, "AdminService connected successfully");
             Log.d(TAG, "AdminService object: " + (mAdminService != null ? "NOT NULL" : "NULL"));
-            ToastUtils.showShort(MainActivity.this, "服务连接成功");
-            
+            ToastUtils.showShort(MainActivity.this, R.string.service_bound_success);
             // 更新UserService的远程服务引用
             if (mUserService != null) {
                 Log.d(TAG, "Setting remote service to UserService...");
@@ -101,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * 初始化界面控件和设置点击事件
+     * 设置登录、注册、游客模式按钮的点击监听器
      */
     private void initViews() {
         // 获取界面控件

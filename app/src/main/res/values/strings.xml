@@ -49,7 +49,7 @@
     
     <!-- Service Messages -->
     <string name="service_bound_success">管理服务绑定成功！</string>
-    <string name="service_bind_failed">管理服务绑定失败，请稍后重试。</string>
+    <string name="service_bind_failed">管理服务绑定失败，将使用本地化服务。</string>
     
     <!-- Validation Messages -->
     <string name="username_too_short">用户名至少需要 %1$d 个字符</string>

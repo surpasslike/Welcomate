@@ -49,7 +49,7 @@
     
     <!-- Service Messages -->
     <string name="service_bound_success">AdminService bound successfully!</string>
-    <string name="service_bind_failed">Failed to bind AdminService. Please try again later.</string>
+    <string name="service_bind_failed">Failed to bind AdminService. Localized service will be used instead.</string>
     
     <!-- Validation Messages -->
     <string name="username_too_short">Username must be at least %1$d characters</string>
