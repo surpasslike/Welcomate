@@ -2,12 +2,12 @@ package com.surpasslike.welcomateservice.data;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Base64;
 import android.util.Log;
 
-import com.surpasslike.welcomateservice.MyApplication;
 import com.surpasslike.welcomateservice.data.db.DatabaseHelper;
 import com.surpasslike.welcomateservice.data.model.User;
 
@@ -21,7 +21,7 @@ import java.util.List;
  * 用户数据的仓库层
  * 作为应用中所有用户数据的唯一真实来源 (Single Source of Truth)
  * 负责处理所有数据操作，无论是来自本地数据库还是未来的网络 API
- * 这是一个单例，以确保整个应用只有一个数据源实例
+ * 这是一个单例，以确保整个��用只有一个数据源实例
  */
 public class UserRepository {
     private static final String TAG = "UserRepository";
@@ -32,23 +32,35 @@ public class UserRepository {
 
     /**
      * 私有构造函数，防止外部直接实例化
+     * @param context Application context, used for database initialization.
      */
-    private UserRepository() {
-        this.dbHelper = new DatabaseHelper(MyApplication.getContext());
+    private UserRepository(Context context) {
+        this.dbHelper = new DatabaseHelper(context);
+    }
+
+    /**
+     * 初始化 UserRepository 的单例。
+     * 这个方法必须在应用启动时（例如在 Application.onCreate 中）被调用一次。
+     * @param context Application context.
+     */
+    public static void initialize(Context context) {
+        if (INSTANCE == null) {
+            synchronized (UserRepository.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new UserRepository(context);
+                }
+            }
+        }
     }
 
     /**
      * 获取 UserRepository 的单例
-     *
+     * 在调用此方法之前，必须先调用 initialize()。
      * @return UserRepository 的唯一实例
      */
     public static UserRepository getInstance() {
         if (INSTANCE == null) {
-            synchronized (UserRepository.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new UserRepository();
-                }
-            }
+            throw new IllegalStateException("UserRepository must be initialized in Application.onCreate()");
         }
         return INSTANCE;
     }

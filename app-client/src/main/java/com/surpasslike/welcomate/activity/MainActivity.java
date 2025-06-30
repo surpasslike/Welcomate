@@ -13,9 +13,10 @@ import android.view.View;
 import android.widget.Button;
 
 import com.surpasslike.welcomate.R;
-import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomateservice.IAdminService;
+import com.surpasslike.welcomateservice.service.AdminService;
+import com.surpasslike.welcomateservice.ui.admin.AdminDashboardActivity;
 
 /**
  * 主活动页面
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
         @SuppressLint({"MissingInflatedId", "LocalSuppress"}) Button button_login = findViewById(R.id.button_login);
         @SuppressLint({"MissingInflatedId", "LocalSuppress"}) Button button_register = findViewById(R.id.button_register);
         @SuppressLint({"MissingInflatedId", "LocalSuppress"}) Button button_guest = findViewById(R.id.button_guest);
+        Button button_user_management = findViewById(R.id.button_user_management);
 
         // 设置登录按钮点击事件
         button_login.setOnClickListener(new View.OnClickListener() {
@@ -106,6 +108,15 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
+        // 设置用户管理按钮点击事件
+        button_user_management.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AdminDashboardActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     /**
@@ -113,8 +124,8 @@ public class MainActivity extends AppCompatActivity {
      * 用于与服务端进行通信
      */
     private void bindAdminService() {
-        Intent intent = new Intent();
-        intent.setComponent(new ComponentName(AppConstants.Service.ADMIN_SERVICE_PACKAGE, AppConstants.Service.ADMIN_SERVICE_CLASS));
+        // 由于 app-service 是一个库模块，可以直接通过类引用来创建 Intent，更安全、更简单。
+        Intent intent = new Intent(this, AdminService.class);
 
         boolean isServiceBound = bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
         if (isServiceBound) {

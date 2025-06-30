@@ -14,7 +14,7 @@ android {
     defaultConfig {
 //        不需要 applicationId，因为它只在主 App 模块中设置
 //        applicationId "com.surpasslike.setting"
-        minSdk 34
+        minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"

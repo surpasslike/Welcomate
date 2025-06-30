@@ -8,14 +8,13 @@
         android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
         tools:ignore="ProtectedPermissions" />
 
-    <!-- 为了能正常工作，我需要向系统申请这个权限 -->
-    <!-- for bind to service Intent { cmp=com.surpasslike.welcomateservice/.admin.AdminService }-->
-    <uses-permission android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE" />
+    <!-- 
+        由于 app-service 已成为库模块，不再需要跨应用权限和 queries 标签。
+        相关的服务和活动都在同一个应用内，可以直接访问。
+    -->
 
-    <queries>
-        <package android:name="com.surpasslike.welcomateservice" />
-    </queries>
     <application
+        android:name=".MainApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

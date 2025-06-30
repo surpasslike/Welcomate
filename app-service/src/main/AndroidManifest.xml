@@ -1,39 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
-        tools:ignore="ProtectedPermissions" />
 
-    <!-- 创造一个新的权限(就像锁一样)，名字叫 ADMIN_SERVICE
-    protectionLevel="signature"决定了这把钥匙的颁发规则：“只有和我拥有相同签名的人，才有资格获得这把钥匙-->
-    <permission
-        android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE"
-        android:protectionLevel="signature" />
+    <!-- 权限声明将合并到主应用，这里不再需要 -->
 
-    <queries>
-        <package android:name="com.surpasslike.welcomate"/>
-    </queries>
-    <application
-        android:name=".MyApplication"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.WelcomateService">
-
-        <!-- 用刚刚造好的这把锁，把 AdminService 锁起来 -->
+    <application>
+        <!-- 
+            服务现在是应用内服务，不再需要导出或设置权限。
+            当 app-client 绑定服务时，可以直接通过类名进行，更安全高效。
+        -->
         <service
             android:name=".service.AdminService"
             android:enabled="true"
-            android:exported="true"
-            android:permission="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE" />
+            android:exported="false" />
 
+        <!-- 
+            这些 Activity 将由主应用 app-client 启动。
+            exported="false" ���安全的默认设置。
+        -->
         <activity
             android:name=".ui.admin.AdminRegisterActivity"
             android:exported="false" />
@@ -43,14 +27,16 @@
         <activity
             android:name=".ui.admin.AdminLoginActivity"
             android:exported="false" />
+        
+        <!-- 
+            移除了 MainActivity 的 LAUNCHER intent-filter，
+            因为它不再是独立的启动项。
+            如果这个 MainActivity 仍有用途，可以保留，否则可以删除。
+            暂时保留 activity 声明。
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
+            android:exported="false">
         </activity>
     </application>
 

@@ -6,6 +6,7 @@
     <string name="button_login">Login</string>
     <string name="button_register">Register</string>
     <string name="button_guest">Continue as Guest</string>
+    <string name="button_user_management">User Management</string>
     
     <!-- Login Activity -->
     <string name="hint_account">Account</string>
