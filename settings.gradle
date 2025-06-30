@@ -28,5 +28,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Welcomate"
-include ':app'
+include ':app-client'
+include ':app-service'
 include ':setting'

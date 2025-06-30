@@ -13,7 +13,7 @@ public class AppConstants {
         /** AdminService服务包名 */
         public static final String ADMIN_SERVICE_PACKAGE = "com.surpasslike.welcomateservice";
         /** AdminService服务类名 */
-        public static final String ADMIN_SERVICE_CLASS = "com.surpasslike.welcomateservice.admin.AdminService";
+        public static final String ADMIN_SERVICE_CLASS = "com.surpasslike.welcomateservice.service.AdminService";
     }
     
     /**

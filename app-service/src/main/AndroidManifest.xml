@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- 创造一个新的权限(就像锁一样)，名字叫 ADMIN_SERVICE
+    protectionLevel="signature"决定了这把钥匙的颁发规则：“只有和我拥有相同签名的人，才有资格获得这把钥匙-->
+    <permission
+        android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE"
+        android:protectionLevel="signature" />
+
+    <queries>
+        <package android:name="com.surpasslike.welcomate"/>
+    </queries>
+    <application
+        android:name=".MyApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.WelcomateService">
+
+        <!-- 用刚刚造好的这把锁，把 AdminService 锁起来 -->
+        <service
+            android:name=".service.AdminService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE" />
+
+        <activity
+            android:name=".ui.admin.AdminRegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.admin.AdminDashboardActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.admin.AdminLoginActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
