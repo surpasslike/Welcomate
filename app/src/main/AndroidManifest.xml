@@ -8,6 +8,10 @@
         android:name="android.permission.INTERACT_ACROSS_USERS_FULL"
         tools:ignore="ProtectedPermissions" />
 
+    <!-- 为了能正常工作，我需要向系统申请这个权限 -->
+    <!-- for bind to service Intent { cmp=com.surpasslike.welcomateservice/.admin.AdminService }-->
+    <uses-permission android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE" />
+
     <queries>
         <package android:name="com.surpasslike.welcomateservice" />
     </queries>
