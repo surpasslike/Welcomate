@@ -6,12 +6,19 @@ android {
     namespace 'com.surpasslike.welcomateservice'
     compileSdk 34
 
+    android.applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            //在这里修改apk文件名
+            outputFileName = "WelcomateServer-v${variant.versionName}.${variant.versionCode}-${variant.name}.apk"
+        }
+    }
+
     defaultConfig {
         applicationId "com.surpasslike.welcomateservice"
         minSdk 34
         targetSdk 34
-        versionCode 20250413
-        versionName "1.0.0"
+        versionCode 20250701
+        versionName "1.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
