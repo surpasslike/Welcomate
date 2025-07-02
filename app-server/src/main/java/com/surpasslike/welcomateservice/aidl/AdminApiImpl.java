@@ -2,6 +2,7 @@ package com.surpasslike.welcomateservice.aidl;
 
 import com.surpasslike.welcomateservice.IAdminService;
 import com.surpasslike.welcomateservice.data.UserRepository;
+import com.surpasslike.welcomateservice.data.model.User;
 
 /**
  * AIDL 接口 IAdminService 的具体实现
@@ -20,7 +21,7 @@ public class AdminApiImpl extends IAdminService.Stub {
     }
 
     /**
-     * 验证管理员登录
+     * 验证用户登录
      *
      * @param account  用户输入的账户
      * @param password 用户输入的原始密码
@@ -28,7 +29,11 @@ public class AdminApiImpl extends IAdminService.Stub {
      */
     @Override
     public String loginAdmin(String account, String password) {
-        return userRepository.loginAdmin(account, password);
+        User user = userRepository.login(account, password);
+        if (user != null) {
+            return user.getUsername();
+        }
+        return null;
     }
 
     /**
@@ -41,7 +46,7 @@ public class AdminApiImpl extends IAdminService.Stub {
      */
     @Override
     public boolean registerUser(String username, String account, String password) {
-        long rowId = userRepository.addUser(username, account, password);
+        long rowId = userRepository.addUser(username, account, password, "USER");
         return rowId != -1;
     }
 

@@ -74,15 +74,19 @@ public class UserRepository {
     }
 
     /**
-     * 验证管理员登录
+     * 验证管理员或用户登录
      *
      * @param account  用户输入的账户
      * @param password 用户输入的原始密码
-     * @return 如果登录成功，返回用户名；否则返回 null
+     * @return 如果登录成功，返回包含用户信息的 User 对象；否则返回 null
      */
-    public String loginAdmin(String account, String password) {
+    public User login(String account, String password) {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        String[] columns = {DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_PASSWORD};
+        String[] columns = {
+                DatabaseHelper.COLUMN_USERNAME,
+                DatabaseHelper.COLUMN_PASSWORD,
+                DatabaseHelper.COLUMN_ROLE
+        };
         String selection = DatabaseHelper.COLUMN_ACCOUNT + " = ?";
         String[] selectionArgs = {account};
 
@@ -93,26 +97,42 @@ public class UserRepository {
 
                 if (inputPasswordHash != null && inputPasswordHash.equals(storedPasswordHash)) {
                     @SuppressLint("Range") String username = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_USERNAME));
-                    return username;
+                    @SuppressLint("Range") String role = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ROLE));
+                    // 登录成功，返回 User 对象
+                    return new User(username, account, null, role);
                 }
             }
         }
-        return null;
+        return null; // 账户不存在或密码错误
     }
 
     /**
-     * 添加新用户
+     * 添加新用户（供服务端使用，默认为管理员）
      *
      * @param username 用户名
      * @param account  账户
-     * @param password 原始密码，将被哈希后存储
+     * @param password 原始密码
      * @return 新插入行的行 ID，如果发生错误则为 -1
      */
     public long addUser(String username, String account, String password) {
+        return addUser(username, account, password, "ADMIN");
+    }
+
+    /**
+     * 添加新用户（核心方法）
+     *
+     * @param username 用户名
+     * @param account  账户
+     * @param password 原始密码
+     * @param role     用户角色 ("ADMIN" 或 "USER")
+     * @return 新插入行的行 ID，如果发生错误则为 -1
+     */
+    public long addUser(String username, String account, String password, String role) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(DatabaseHelper.COLUMN_USERNAME, username);
         values.put(DatabaseHelper.COLUMN_ACCOUNT, account);
+        values.put(DatabaseHelper.COLUMN_ROLE, role);
 
         String hashedPassword = hashPassword(password);
         if (hashedPassword == null) {
@@ -131,13 +151,18 @@ public class UserRepository {
     public List<User> getAllUsers() {
         List<User> userList = new ArrayList<>();
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        String[] columns = {DatabaseHelper.COLUMN_USERNAME, DatabaseHelper.COLUMN_ACCOUNT};
+        String[] columns = {
+                DatabaseHelper.COLUMN_USERNAME,
+                DatabaseHelper.COLUMN_ACCOUNT,
+                DatabaseHelper.COLUMN_ROLE
+        };
         try (Cursor cursor = db.query(DatabaseHelper.TABLE_USERS, columns, null, null, null, null, null)) {
             if (cursor.moveToFirst()) {
                 do {
                     @SuppressLint("Range") String username = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_USERNAME));
                     @SuppressLint("Range") String account = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ACCOUNT));
-                    userList.add(new User(username, account, null));
+                    @SuppressLint("Range") String role = cursor.getString(cursor.getColumnIndex(DatabaseHelper.COLUMN_ROLE));
+                    userList.add(new User(username, account, null, role));
                 } while (cursor.moveToNext());
             }
         }

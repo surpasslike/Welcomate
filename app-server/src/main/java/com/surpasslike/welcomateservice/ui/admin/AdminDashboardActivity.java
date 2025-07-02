@@ -154,7 +154,7 @@ public class AdminDashboardActivity extends AppCompatActivity {
                 String newPassword = etNewPassword.getText().toString();
 
                 // 调用方法以添加新用户
-                long rowId = adminViewModel.addUser(newUsername, newAccount, newPassword);
+                long rowId = adminViewModel.addUser(newUsername, newAccount, newPassword, "USER");
                 if (rowId != -1) {
                     showToast("User added");
                     userList = adminViewModel.getAllUsers(); // 添加用户后刷新用户列表
