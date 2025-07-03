@@ -3,17 +3,13 @@ package com.surpasslike.welcomate.activity;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.view.View;
 import android.widget.Button;
 
 import com.surpasslike.welcomate.R;
-import com.surpasslike.welcomate.constants.AppConstants;
+import com.surpasslike.welcomate.service.ServiceManager;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomateservice.IAdminService;
 
@@ -27,32 +23,8 @@ public class MainActivity extends AppCompatActivity {
     /** 日志标签 */
     private static final String TAG = "MainActivity";
 
-    // AdminService实例，用于与服务端通信
-    static IAdminService mAdminService;
-
-    // 服务连接对象，用于处理服务绑定和解绑
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-        /**
-         * 服务连接成功时的回调
-         * @param name 服务组件名
-         * @param service 服务的IBinder对象
-         */
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            // 绑定成功时调用，获取AdminService的代理对象
-            mAdminService = IAdminService.Stub.asInterface(service);
-        }
-
-        /**
-         * 服务断开连接时的回调
-         * @param name 服务组件名
-         */
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            // 解绑时调用
-            mAdminService = null;
-        }
-    };
+    // ServiceManager实例，用于管理Service连接
+    private ServiceManager mServiceManager;
 
     /**
      * 活动创建时的初始化方法
@@ -64,8 +36,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // 绑定AdminService服务
-        bindAdminService();
+        // 获取ServiceManager实例
+        mServiceManager = ServiceManager.getInstance();
+        
+        // 检查服务连接状态并显示相应提示
+        checkServiceConnection();
 
         // 初始化界面控件
         initViews();
@@ -109,18 +84,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 绑定AdminService服务
-     * 用于与服务端进行通信
+     * 检查服务连接状态
      */
-    private void bindAdminService() {
-        Intent intent = new Intent();
-        intent.setComponent(new ComponentName(AppConstants.Service.ADMIN_SERVICE_PACKAGE, AppConstants.Service.ADMIN_SERVICE_CLASS));
-
-        boolean isServiceBound = bindService(intent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        if (isServiceBound) {
+    private void checkServiceConnection() {
+        if (mServiceManager.isServiceConnected()) {
             ToastUtils.showShort(this, R.string.service_bound_success);
         } else {
-            ToastUtils.showShort(this, R.string.service_bind_failed);
+            // 设置监听器等待服务连接
+            mServiceManager.setServiceConnectionListener(new ServiceManager.ServiceConnectionListener() {
+                @Override
+                public void onServiceConnected(IAdminService service) {
+                    runOnUiThread(() -> {
+                        ToastUtils.showShort(MainActivity.this, R.string.service_bound_success);
+                    });
+                    // 移除监听器避免内存泄漏
+                    mServiceManager.removeServiceConnectionListener();
+                }
+
+                @Override
+                public void onServiceDisconnected() {
+                    runOnUiThread(() -> {
+                        ToastUtils.showShort(MainActivity.this, R.string.service_bind_failed);
+                    });
+                }
+                
+                @Override
+                public void onServiceBindFailed() {
+                    runOnUiThread(() -> {
+                        ToastUtils.showShort(MainActivity.this, R.string.service_bind_failed);
+                    });
+                }
+            });
         }
     }
 
@@ -130,18 +124,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // 解绑AdminService服务
-        if (mAdminService != null) {
-            unbindService(mServiceConnection);
+        // 清理服务连接监听器
+        if (mServiceManager != null) {
+            mServiceManager.removeServiceConnectionListener();
         }
-    }
-
-    /**
-     * 静态方法，用于获取已绑定的IAdminService对象
-     *
-     * @return IAdminService实例，如果未绑定则返回null
-     */
-    public static IAdminService getAdminService() {
-        return mAdminService;
     }
 }

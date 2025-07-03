@@ -57,16 +57,19 @@ public class AdminLoginActivity extends AppCompatActivity {
         }
 
         // 通过 ViewModel 验证管理员登录
-        boolean loginSuccess = adminViewModel.loginAdmin(account, password);
+        int loginResult = adminViewModel.loginAdmin(account, password);
 
-        if (loginSuccess) {
+        if (loginResult == AdminViewModel.LOGIN_SUCCESS) {
             // 登录成功，跳转到管理员仪表盘
             showToast("Login successful!");
             startActivity(new Intent(AdminLoginActivity.this, AdminDashboardActivity.class));
             finish(); // 结束当前登录界面，防止用户通过返回键回到登录页
-        } else {
-            // 登录失败，显示错误提示
+        } else if (loginResult == AdminViewModel.LOGIN_FAILED) {
+            // 账户或密码错误
             showToast("Login failed! Please check your account and password.");
+        } else if (loginResult == AdminViewModel.PERMISSION_DENIED) {
+            // 权限不足
+            showToast("Permission denied! This account does not have admin privileges.");
         }
     }
 

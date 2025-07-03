@@ -11,6 +11,7 @@ import android.view.View;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityLoginBinding;
+import com.surpasslike.welcomate.service.ServiceManager;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
 import com.surpasslike.welcomateservice.IAdminService;
@@ -26,6 +27,9 @@ public class LoginActivity extends AppCompatActivity {
     
     // 视图绑定对象
     private ActivityLoginBinding mActivityLoginBinding;
+    
+    // ServiceManager实例
+    private ServiceManager mServiceManager;
 
     /**
      * 活动创建时的初始化方法
@@ -36,6 +40,9 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mActivityLoginBinding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(mActivityLoginBinding.getRoot());
+        
+        // 获取ServiceManager实例
+        mServiceManager = ServiceManager.getInstance();
         
         // 初始化界面
         initViews();
@@ -67,10 +74,10 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
         
-        // 获取已经绑定的AdminService对象
-        IAdminService adminService = MainActivity.getAdminService();
+        // 获取AdminService对象
+        IAdminService adminService = mServiceManager.getAdminService();
         
-        if (adminService != null) {
+        if (adminService != null && mServiceManager.isServiceConnected()) {
             try {
                 String username = adminService.loginAdmin(account, password);
                 handleLoginResult(username);
