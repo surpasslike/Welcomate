@@ -8,6 +8,7 @@ public class User {
     private final String username;
     private final String account;
     private final String password; // 通常在模型中不建议直接持有密码，但此处为保持与原有结构一致
+    private final String role;
 
     /**
      * 构造函数
@@ -15,11 +16,13 @@ public class User {
      * @param username 用户名
      * @param account  用户账户
      * @param password 用户密码（或密码哈希）
+     * @param role     用户角色
      */
-    public User(String username, String account, String password) {
+    public User(String username, String account, String password, String role) {
         this.username = username;
         this.account = account;
         this.password = password;
+        this.role = role;
     }
 
     /**
@@ -49,5 +52,14 @@ public class User {
      */
     public String getPassword() {
         return password;
+    }
+
+    /**
+     * 获取用户角色
+     *
+     * @return 用户角色字符串
+     */
+    public String getRole() {
+        return role;
     }
 }

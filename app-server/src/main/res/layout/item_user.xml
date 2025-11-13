@@ -19,9 +19,9 @@
         android:text="Account" />
 
     <TextView
-        android:id="@+id/tvPassword"
+        android:id="@+id/tvRole"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Password" />
+        android:text="Role" />
 
 </LinearLayout>

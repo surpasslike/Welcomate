@@ -54,6 +54,7 @@ public class AdminUserAdapter extends RecyclerView.Adapter<AdminUserAdapter.User
         User user = userList.get(position);
         holder.tvUsername.setText(user.getUsername());
         holder.tvAccount.setText(user.getAccount());
+        holder.tvRole.setText(user.getRole());
         // 安全起见，我们不在此处显示密码或密码哈希
     }
 
@@ -82,12 +83,13 @@ public class AdminUserAdapter extends RecyclerView.Adapter<AdminUserAdapter.User
      * ViewHolder 类，用于缓存 item view 中的视图
      */
     static class UserViewHolder extends RecyclerView.ViewHolder {
-        TextView tvUsername, tvAccount;
+        TextView tvUsername, tvAccount, tvRole;
 
         UserViewHolder(@NonNull View itemView) {
             super(itemView);
             tvUsername = itemView.findViewById(R.id.tvUsername);
             tvAccount = itemView.findViewById(R.id.tvAccount);
+            tvRole = itemView.findViewById(R.id.tvRole);
             // 移除了 tvPassword 的绑定
         }
     }

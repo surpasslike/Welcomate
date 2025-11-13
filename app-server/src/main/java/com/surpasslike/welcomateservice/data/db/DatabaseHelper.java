@@ -21,6 +21,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COLUMN_USERNAME = "username";
     public static final String COLUMN_ACCOUNT = "account";
     public static final String COLUMN_PASSWORD = "password";
+    public static final String COLUMN_ROLE = "role";
 
     /**
      * 创建用户表的 SQL 语句
@@ -31,7 +32,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     COLUMN_USERNAME + " TEXT, " +
                     COLUMN_ACCOUNT + " TEXT UNIQUE, " + // 账户应该是唯一的
-                    COLUMN_PASSWORD + " TEXT" +
+                    COLUMN_PASSWORD + " TEXT, " +
+                    COLUMN_ROLE + " TEXT" +
                     ")";
 
     /**

@@ -15,6 +15,7 @@ import android.widget.EditText;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityHomeBinding;
+import com.surpasslike.welcomate.service.ServiceManager;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
 import com.surpasslike.welcomateservice.IAdminService;
@@ -31,8 +32,8 @@ public class HomeActivity extends AppCompatActivity {
     // 视图绑定对象
     private ActivityHomeBinding mActivityHomeBinding;
     
-    // AdminService实例
-    private IAdminService mAdminService;
+    // ServiceManager实例
+    private ServiceManager mServiceManager;
 
     /**
      * 活动创建时的初始化方法
@@ -47,8 +48,8 @@ public class HomeActivity extends AppCompatActivity {
         // 获取传递的用户名
         String username = getIntent().getStringExtra(AppConstants.IntentExtra.USERNAME);
         
-        // 获取AdminService实例
-        mAdminService = MainActivity.getAdminService();
+        // 获取ServiceManager实例
+        mServiceManager = ServiceManager.getInstance();
         
         // 初始化界面
         initViews(username);
@@ -165,17 +166,11 @@ public class HomeActivity extends AppCompatActivity {
      * @param newPassword 新密码
      */
     private void changeUserPassword(String username, String newPassword) {
-        if (mAdminService != null) {
-            try {
-                mAdminService.updateUserPassword(username, newPassword);
-                ToastUtils.showShort(this, getString(R.string.password_changed, username));
-            } catch (RemoteException e) {
-                Log.e(TAG, "Failed to update password", e);
-                ToastUtils.showShort(this, R.string.service_not_available);
-            }
-        } else {
-            ToastUtils.showShort(this, R.string.service_not_available);
-        }
+        executeServiceCall(() -> {
+            IAdminService adminService = mServiceManager.getAdminService();
+            adminService.updateUserPassword(username, newPassword);
+            ToastUtils.showShort(this, getString(R.string.password_changed, username));
+        }, "Failed to update password");
     }
 
     /**
@@ -211,18 +206,37 @@ public class HomeActivity extends AppCompatActivity {
      * @param username 要删除的用户名
      */
     private void deleteUser(String username) {
-        if (mAdminService != null) {
+        executeServiceCall(() -> {
+            IAdminService adminService = mServiceManager.getAdminService();
+            adminService.deleteUser(username);
+            ToastUtils.showShort(this, R.string.user_deleted);
+            finish(); // 删除成功后关闭当前页面
+        }, "Failed to delete user");
+    }
+    
+    /**
+     * 执行Service调用的通用方法
+     * @param serviceCall 要执行的Service调用
+     * @param errorMessage 出错时的日志信息
+     */
+    private void executeServiceCall(ServiceCall serviceCall, String errorMessage) {
+        if (mServiceManager.isServiceConnected()) {
             try {
-                mAdminService.deleteUser(username);
-                ToastUtils.showShort(this, R.string.user_deleted);
-                finish(); // 删除成功后关闭当前页面
+                serviceCall.execute();
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to delete user", e);
+                Log.e(TAG, errorMessage, e);
                 ToastUtils.showShort(this, R.string.service_not_available);
             }
         } else {
             ToastUtils.showShort(this, R.string.service_not_available);
         }
+    }
+    
+    /**
+     * Service调用接口
+     */
+    private interface ServiceCall {
+        void execute() throws RemoteException;
     }
     
     /**

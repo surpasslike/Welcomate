@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityRegisterBinding;
+import com.surpasslike.welcomate.service.ServiceManager;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
 import com.surpasslike.welcomateservice.IAdminService;
@@ -26,8 +27,8 @@ public class RegisterActivity extends AppCompatActivity {
     // 视图绑定对象
     private ActivityRegisterBinding mActivityRegisterBinding;
     
-    // AdminService实例
-    private IAdminService mAdminService;
+    // ServiceManager实例
+    private ServiceManager mServiceManager;
 
     /**
      * 活动创建时的初始化方法
@@ -39,8 +40,8 @@ public class RegisterActivity extends AppCompatActivity {
         mActivityRegisterBinding = ActivityRegisterBinding.inflate(getLayoutInflater());
         setContentView(mActivityRegisterBinding.getRoot());
 
-        // 获取AdminService实例
-        mAdminService = MainActivity.getAdminService();
+        // 获取ServiceManager实例
+        mServiceManager = ServiceManager.getInstance();
         
         // 初始化界面
         initViews();
@@ -141,9 +142,10 @@ public class RegisterActivity extends AppCompatActivity {
      * @param password 密码
      */
     private void registerUser(String username, String account, String password) {
-        if (mAdminService != null) {
+        IAdminService adminService = mServiceManager.getAdminService();
+        if (adminService != null && mServiceManager.isServiceConnected()) {
             try {
-                boolean isRegistered = mAdminService.registerUser(username, account, password);
+                boolean isRegistered = adminService.registerUser(username, account, password);
                 handleRegisterResult(isRegistered);
             } catch (RemoteException e) {
                 Log.e(TAG, "Remote service call failed", e);
