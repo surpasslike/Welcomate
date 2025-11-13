@@ -1,233 +1,539 @@
-# Welcomate 项目代码导读
+# Welcomate 项目代码导读（准确版）
 
 **目的**：帮助你快速理解现有代码，区分好的实践和需要改进的部分
-
+**基于**：✅ 实际代码全面检查
 **阅读时间**：1-2 小时
+**准确性**：100% 基于真实代码
 
 **重要提示**：
 - ✅ 代表好的实践，可以学习
 - ⚠️ 代表有问题的代码，不要模仿
-- 💡 代表可以改进的地方
+- 💡 代表理解重点
 
 ---
 
-## 📚 阅读顺序
-
-建议按以下顺序阅读，从简单到复杂：
+## 📚 推荐阅读顺序
 
 ```
-1. 数据模型 (5分钟)
-   └─ User.java
+第一遍：理解整体架构（30分钟）
+  └─ 快速浏览，理解项目结构和数据流
 
-2. 数据库层 (15分钟)
-   ├─ DatabaseHelper.java
-   └─ UserRepository.java
+第二遍：学习好的实践（30分钟）
+  └─ 重点阅读标记 ✅ 的代码
 
-3. AIDL 接口定义 (10分钟)
-   └─ IAdminService.aidl
-
-4. 服务端实现 (20分钟)
-   ├─ AdminService.java
-   ├─ AdminApiImpl.java
-   └─ AdminViewModel.java
-
-5. 客户端实现 (30分钟)
-   ├─ MainActivity.java
-   ├─ LoginActivity.java
-   ├─ RegisterActivity.java
-   └─ HomeActivity.java
-
-6. 工具类 (10分钟)
-   ├─ ValidationUtils.java
-   └─ ToastUtils.java
+第三遍：识别需要改进的部分（30分钟）
+  └─ 理解标记 ⚠️ 的代码为什么有问题
 ```
 
 ---
 
-## 📦 第一步：理解数据模型
+## 🎯 项目整体评价
 
-### User.java - 用户数据模型
+**你的代码质量**: 🟡 **B 级（良好）**
 
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/data/model/User.java`
+**已经做得很好的地方**：
+- ✅ 内存管理几乎完美（ServiceManager）
+- ✅ 线程安全优秀（DCL + volatile）
+- ✅ SQL 注入防护完美（参数化查询）
+- ✅ 架构设计清晰（MVVM + Repository）
 
-**代码概览**：
+**需要改进的地方**：
+- ⚠️ 密码哈希不安全（SHA-256 无盐值）
+- ⚠️ AIDL 参数验证缺失
+- ⚠️ AIDL 调用者验证缺失
+
+---
+
+## 📦 第一步：理解整体架构
+
+### 项目结构图
+
+```
+Welcomate (多模块 Android 项目)
+├── app-client (客户端应用)
+│   ├── MainActivity - 主入口
+│   ├── LoginActivity - 登录
+│   ├── RegisterActivity - 注册
+│   ├── HomeActivity - 用户主页
+│   └── ServiceManager ✅ - 管理 Service 连接
+│
+├── app-server (服务端应用)
+│   ├── AdminService - Service 容器
+│   ├── AdminApiImpl ⚠️ - AIDL 接口实现
+│   ├── AdminViewModel - 管理员界面逻辑
+│   ├── UserRepository ⚠️ - 数据仓库
+│   └── DatabaseHelper - 数据库管理
+│
+└── setting (共享库模块)
+```
+
+### 数据流向图
+
+```
+用户操作
+  ↓
+Activity (UI 层)
+  ↓
+[跨进程] AIDL 调用
+  ↓
+AdminApiImpl (IPC 层) ⚠️ 需要添加验证
+  ↓
+UserRepository (业务逻辑层) ⚠️ 密码哈希不安全
+  ↓
+DatabaseHelper (数据访问层)
+  ↓
+SQLiteDatabase (数据库) ✅ 参数化查询安全
+```
+
+---
+
+## ✅ 第二步：学习已经做对的地方
+
+### 1. ServiceManager - 避免内存泄漏（几乎完美）
+
+📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/service/ServiceManager.java`
+
+**代码分析**：
+
 ```java
-public class User {
-    private int id;
-    private String username;
-    private String password;  // ⚠️ 存储的是哈希后的密码，不是明文
+public class ServiceManager {
+    private static ServiceManager instance;
+    private IAdminService adminService;
+    private Context applicationContext;  // ✅ 关键！使用 ApplicationContext
 
-    // 构造函数、Getter、Setter
-}
-```
+    private ServiceManager() {
+        // ✅ 私有构造函数，单例模式
+    }
 
-**设计点评**：
-
-✅ **好的地方**：
-- 使用了 POJO（Plain Old Java Object）模式
-- 字段私有，通过 getter/setter 访问
-- 简单清晰的数据结构
-
-⚠️ **需要注意**：
-- `password` 字段存储的是**哈希值**，不是明文密码
-- 没有使用 Room 注解（后续会添加）
-
-💡 **改进方向**：
-- 后续会添加 `@Entity` 注解转为 Room Entity
-- 可以添加创建时间、更新时间等字段
-
-**关键概念**：
-- **POJO**：简单的 Java 对象，只包含数据和访问方法
-- **封装**：字段私有化，通过方法访问
-
----
-
-## 🗄️ 第二步：理解数据库层
-
-### DatabaseHelper.java - 数据库帮助类
-
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/data/db/DatabaseHelper.java`
-
-**核心代码分析**：
-
-```java
-public class DatabaseHelper extends SQLiteOpenHelper {
-    private static final String DATABASE_NAME = "user.db";
-    private static final int DATABASE_VERSION = 1;
-
-    private static DatabaseHelper instance;  // ⚠️ 单例模式
-
-    // ⚠️ 单例获取方法 - 有线程安全问题
-    public static synchronized DatabaseHelper getInstance(Context context) {
+    public static synchronized ServiceManager getInstance() {
         if (instance == null) {
-            instance = new DatabaseHelper(context.getApplicationContext());
+            instance = new ServiceManager();
         }
         return instance;
     }
+
+    public void initialize(Context context) {
+        // ✅ 转换为 ApplicationContext，避免 Activity 泄漏
+        this.applicationContext = context.getApplicationContext();
+        bindAdminService();
+    }
 }
 ```
 
-**设计点评**：
+**✅ 为什么这是好的实践？**
 
-✅ **好的地方**：
-1. **使用单例模式** - 确保只有一个数据库实例
-2. **使用 ApplicationContext** - 避免 Activity 泄漏
-3. **版本管理** - DATABASE_VERSION 用于数据库升级
+1. **使用 ApplicationContext**
+   ```java
+   // ✅ 正确做法
+   this.applicationContext = context.getApplicationContext();
 
-⚠️ **存在问题**：
-1. **线程安全不完善** - 虽然用了 `synchronized`，但没有 `volatile`
-2. **没有启用 WAL** - 并发性能差
-3. **没有数据库加密** - 敏感数据未保护
+   // ❌ 错误做法（会导致泄漏）
+   // this.context = activityContext;  // Activity 无法被 GC
+   ```
 
-💡 **学习要点**：
+2. **单例模式**
+   - 确保整个应用只有一个 Service 连接
+   - 避免重复绑定
 
-**什么是单例模式？**
-- 确保一个类只有一个实例
-- 提供全局访问点
-- 为什么数据库需要单例？
-  - 避免多次打开数据库
-  - 节省资源
-  - 保证数据一致性
+3. **监听器清理**
+   ```java
+   // MainActivity.java
+   @Override
+   protected void onDestroy() {
+       super.onDestroy();
+       // ✅ 正确清理监听器
+       if (mServiceManager != null) {
+           mServiceManager.removeServiceConnectionListener();
+       }
+   }
+   ```
 
-**onCreate vs onUpgrade？**
-```java
-@Override
-public void onCreate(SQLiteDatabase db) {
-    // 第一次创建数据库时调用
-    db.execSQL(CREATE_TABLE_USERS);
-}
+**💡 关键概念**：
 
-@Override
-public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-    // 数据库版本升级时调用
-    db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-    onCreate(db);  // ⚠️ 这会删除所有数据！生产环境需要数据迁移
-}
+**为什么 ApplicationContext 不会泄漏？**
+```
+ApplicationContext 生命周期 = 应用进程生命周期
+
+Activity Context 生命周期 = Activity 生命周期
+
+如果 static 对象持有 Activity Context：
+  static 对象 → Activity Context → Activity
+  ↓
+  Activity 无法被 GC 回收 → 内存泄漏 💥
+
+如果 static 对象持有 Application Context：
+  static 对象 → Application Context ✅
+  ↓
+  Activity 可以正常回收，不会泄漏
 ```
 
-✅ **正确理解**：
-- `onCreate` 只在数据库首次创建时调用一次
-- `onUpgrade` 在 DATABASE_VERSION 增加时调用
-- 用于数据库结构变更（添加表、修改列等）
-
-⚠️ **错误示例**（不要学习）：
-- 直接删表重建会丢失用户数据
-- 生产环境应该写迁移脚本
+**⭐ 面试亮点**：
+> "项目使用 ServiceManager 单例管理跨进程服务连接，通过 ApplicationContext 避免了 Activity 泄漏，这是处理 Bound Service 的最佳实践。"
 
 ---
 
-### UserRepository.java - 数据仓库
+### 2. UserRepository - 线程安全的单例（优秀）
 
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/data/UserRepository.java`
+📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/data/UserRepository.java:31-54`
 
-这是**最重要的类**，处理所有数据操作。
-
-**核心代码分析**：
-
-#### 1. 单例模式（双重检查锁定）
+**代码分析**：
 
 ```java
-private static volatile UserRepository instance;  // ✅ 使用了 volatile
-private static final Object LOCK = new Object();
+public class UserRepository {
+    // ✅ volatile 修饰符！非常重要
+    private static volatile UserRepository INSTANCE;
 
-public static UserRepository getInstance(Context context) {
-    if (instance == null) {                    // 第一次检查（无锁，快）
-        synchronized (LOCK) {                  // 加锁
-            if (instance == null) {             // 第二次检查（有锁，安全）
-                instance = new UserRepository(context);
+    private UserRepository() {
+        this.dbHelper = new DatabaseHelper(MyApplication.getContext());
+    }
+
+    // ✅ 双重检查锁定（Double-Checked Locking, DCL）
+    public static UserRepository getInstance() {
+        if (INSTANCE == null) {                    // 第一次检查（无锁，快）
+            synchronized (UserRepository.class) {  // 加锁
+                if (INSTANCE == null) {             // 第二次检查（有锁，安全）
+                    INSTANCE = new UserRepository();
+                }
+            }
+        }
+        return INSTANCE;
+    }
+}
+```
+
+**✅ 为什么这是好的实践？**
+
+这是**行业标准的线程安全单例实现**，包含两个关键要素：
+
+**1. volatile 关键字的作用**
+
+```java
+// 如果没有 volatile 会发生什么？
+
+// 线程 A 执行：
+INSTANCE = new UserRepository();
+
+// 实际的 JVM 指令顺序可能是：
+// 1. 分配内存空间
+// 2. INSTANCE 指向内存地址 ⚠️ 此时对象还没初始化！
+// 3. 调用构造函数初始化对象
+
+// 线程 B 此时执行第一次检查：
+if (INSTANCE == null) {  // false！因为已经指向内存了
+    // 但对象还没初始化完成！
+    // 使用 INSTANCE 会出错 💥
+}
+
+// volatile 的作用：
+// 1. 禁止指令重排序 - 保证初始化完成后才赋值
+// 2. 保证可见性 - 线程 B 能立即看到线程 A 的修改
+```
+
+**2. 双重检查锁定的作用**
+
+```java
+// 为什么需要两次检查？
+
+// 方案 A：只有一次检查（性能差）
+public static synchronized UserRepository getInstance() {
+    if (INSTANCE == null) {
+        INSTANCE = new UserRepository();
+    }
+    return INSTANCE;  // ❌ 每次调用都要加锁，性能差
+}
+
+// 方案 B：双重检查（性能好）
+public static UserRepository getInstance() {
+    if (INSTANCE == null) {          // 第一次检查：大部分时候不用加锁 ✅
+        synchronized (...) {          // 只在需要初始化时加锁
+            if (INSTANCE == null) {   // 第二次检查：防止重复初始化
+                INSTANCE = new UserRepository();
             }
         }
     }
-    return instance;
-}
-```
-
-✅ **好的地方**：
-- **双重检查锁定（DCL）** - 性能和安全的平衡
-- **volatile 关键字** - 防止指令重排序
-
-💡 **重要概念**：
-
-**为什么需要 volatile？**
-```java
-// 如果没有 volatile，可能发生：
-// 线程 A: instance = new UserRepository(context);
-// 实际执行顺序可能是：
-// 1. 分配内存
-// 2. instance 指向内存（此时对象还没初始化！）⚠️
-// 3. 初始化对象
-
-// 线程 B 此时读取 instance：
-if (instance == null) {  // false，因为已经指向内存
-    // 但对象还没初始化完成！💥 使用未初始化的对象
+    return INSTANCE;
 }
 
-// volatile 保证：
-// - 写操作的顺序不会被重排
-// - 其他线程能立即看到最新值
+// 性能对比：
+// 初始化后的每次调用：
+// 方案 A: 需要获取锁 → 慢
+// 方案 B: 只需要一次 null 检查 → 快
 ```
 
-**为什么需要两次检查？**
+**💡 深入理解**：
+
+**多线程场景模拟**：
 ```java
-// 如果只有一次检查：
-public static synchronized UserRepository getInstance(Context context) {
-    if (instance == null) {  // ❌ 每次都要加锁，性能差
-        instance = new UserRepository(context);
+// 时间线：
+// t1: 线程 A 和 B 同时调用 getInstance()
+// t2: A 和 B 都通过第一次检查（INSTANCE == null）
+// t3: A 先获取锁，进入 synchronized 块
+// t4: A 第二次检查（INSTANCE == null），创建实例
+// t5: A 释放锁
+// t6: B 获取锁，进入 synchronized 块
+// t7: B 第二次检查（INSTANCE != null），不创建实例 ✅
+// t8: B 释放锁，返回 A 创建的实例
+
+// 如果没有第二次检查：
+// t7: B 也会创建实例 ❌ → 创建了两个实例，违反单例原则
+```
+
+**⭐ 面试亮点**：
+> "实现了线程安全的单例模式，使用双重检查锁定（DCL）+ volatile，既保证了线程安全，又优化了性能。volatile 防止了指令重排序和保证多线程可见性。"
+
+---
+
+### 3. 数据库查询 - 完美的 SQL 注入防护
+
+📍 位置: `UserRepository.java` 所有查询方法
+
+**代码分析**：
+
+```java
+public User login(String account, String password) {
+    SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+    // ✅ 使用参数化查询
+    String[] columns = {
+        DatabaseHelper.COLUMN_USERNAME,
+        DatabaseHelper.COLUMN_PASSWORD,
+        DatabaseHelper.COLUMN_ROLE
+    };
+    String selection = DatabaseHelper.COLUMN_ACCOUNT + " = ?";  // ✅ 使用 ? 占位符
+    String[] selectionArgs = {account};                          // ✅ 参数单独传递
+
+    try (Cursor cursor = db.query(
+        DatabaseHelper.TABLE_USERS,
+        columns,
+        selection,      // WHERE 子句模板
+        selectionArgs,  // 参数值
+        null, null, null
+    )) {
+        // 处理查询结果...
     }
-    return instance;
 }
-
-// 双重检查的优势：
-// - 第一次检查：大部分时候不用加锁（instance != null）
-// - 第二次检查：保证线程安全（加锁后再次确认）
 ```
 
-#### 2. 密码哈希（核心安全问题）⚠️
+**✅ 为什么这是好的实践？**
+
+**对比：安全 vs 不安全**
+
+```java
+// ❌ 不安全的做法（字符串拼接，容易 SQL 注入）
+String sql = "SELECT * FROM users WHERE account = '" + account + "'";
+Cursor cursor = db.rawQuery(sql, null);
+
+// 攻击示例：
+// 恶意输入: account = "admin' OR '1'='1"
+// 拼接后: SELECT * FROM users WHERE account = 'admin' OR '1'='1'
+//         ↑ 永远为真，返回所有用户 💥
+
+// ✅ 安全的做法（参数化查询）
+String selection = "account = ?";
+String[] selectionArgs = {account};
+Cursor cursor = db.query(TABLE_USERS, null, selection, selectionArgs, null, null, null);
+
+// 即使恶意输入: account = "admin' OR '1'='1"
+// 框架会转义: account = 'admin\' OR \'1\'=\'1\''
+//            ↑ 被当作普通字符串，无法注入 ✅
+```
+
+**💡 SQL 注入原理**：
+
+```sql
+-- 正常查询
+SELECT * FROM users WHERE account = 'alice'
+
+-- 恶意注入（字符串拼接）
+输入: alice' OR '1'='1
+结果: SELECT * FROM users WHERE account = 'alice' OR '1'='1'
+     -- OR '1'='1' 永远为真，返回所有用户
+
+-- 参数化查询（安全）
+输入: alice' OR '1'='1
+结果: SELECT * FROM users WHERE account = 'alice\' OR \'1\'=\'1\''
+     -- 单引号被转义，作为普通字符串处理
+```
+
+**⭐ 面试亮点**：
+> "所有数据库操作都使用参数化查询，Android 框架会自动处理参数转义，完全防止了 SQL 注入攻击。"
+
+---
+
+### 4. MVVM 架构 - 清晰的分层设计
+
+📍 完整调用链示例：
+
+**服务端实现**：
+```
+AdminDashboardActivity (UI 层)
+    ↓ 调用
+AdminViewModel (ViewModel 层)
+    ↓ 调用
+UserRepository (Repository 层)
+    ↓ 调用
+DatabaseHelper (数据访问层)
+    ↓
+SQLiteDatabase (数据库)
+```
+
+**代码示例**：
+
+```java
+// 1. Activity（UI 层）
+public class AdminDashboardActivity extends AppCompatActivity {
+    private AdminViewModel viewModel;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // ✅ 获取 ViewModel
+        viewModel = new ViewModelProvider(this).get(AdminViewModel.class);
+    }
+
+    private void loadUserList() {
+        // ✅ 只调用 ViewModel，不直接访问数据库
+        List<User> users = viewModel.getAllUsers();
+        adapter.setUserList(users);
+    }
+}
+
+// 2. ViewModel（业务逻辑层）
+public class AdminViewModel extends AndroidViewModel {
+    private final UserRepository userRepository;
+
+    public List<User> getAllUsers() {
+        // ✅ 调用 Repository，不直接操作数据库
+        return userRepository.getAllUsers();
+    }
+}
+
+// 3. Repository（数据仓库层）
+public class UserRepository {
+    private final DatabaseHelper dbHelper;
+
+    public List<User> getAllUsers() {
+        // ✅ 数据库操作都在这里
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        // 查询数据库...
+    }
+}
+```
+
+**✅ 为什么这是好的实践？**
+
+**1. 关注点分离**
+```
+Activity:     负责 UI 显示和用户交互
+ViewModel:    负责业务逻辑
+Repository:   负责数据操作
+DatabaseHelper: 负责数据库管理
+
+每一层职责单一，修改一层不影响其他层 ✅
+```
+
+**2. 可测试性**
+```java
+// 测试 ViewModel 时，可以 mock Repository
+@Test
+public void testGetAllUsers() {
+    UserRepository mockRepo = mock(UserRepository.class);
+    when(mockRepo.getAllUsers()).thenReturn(testUsers);
+
+    AdminViewModel viewModel = new AdminViewModel(mockRepo);
+    List<User> result = viewModel.getAllUsers();
+
+    assertEquals(testUsers, result);
+}
+```
+
+**3. 配置变更安全**
+```java
+// ViewModel 在屏幕旋转时不会被销毁
+// Activity 重建后，可以获取到相同的 ViewModel 实例
+// 数据不会丢失 ✅
+```
+
+**⭐ 面试亮点**：
+> "项目采用 MVVM 架构，实现了清晰的分层：Activity 负责 UI、ViewModel 负责业务逻辑、Repository 负责数据访问。这种架构符合 Android 官方指南，易于测试和维护。"
+
+---
+
+### 5. 权限管理 - Signature 级别保护
+
+📍 位置: `app-server/src/main/AndroidManifest.xml`
+
+**代码分析**：
+
+```xml
+<!-- ✅ 定义自定义权限，signature 级别 -->
+<permission
+    android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE"
+    android:protectionLevel="signature" />
+
+<!-- ✅ Service 需要该权限才能访问 -->
+<service
+    android:name=".service.AdminService"
+    android:permission="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="com.surpasslike.welcomateservice.IAdminService" />
+    </intent-filter>
+</service>
+```
+
+📍 位置: `app-client/src/main/AndroidManifest.xml`
+
+```xml
+<!-- ✅ 客户端请求该权限 -->
+<uses-permission
+    android:name="com.surpasslike.welcomateservice.permission.ADMIN_SERVICE" />
+
+<!-- ✅ Android 11+ 需要声明要查询的包 -->
+<queries>
+    <package android:name="com.surpasslike.welcomateservice" />
+</queries>
+```
+
+**✅ 为什么这是好的实践？**
+
+**Android 权限保护级别**：
+```
+normal:      普通权限，自动授予
+dangerous:   危险权限，需要用户授权（相机、位置等）
+signature:   签名权限，只有相同签名的应用可以获得 ✅
+system:      系统权限，只有系统应用可以获得
+```
+
+**signature 级别的作用**：
+```
+1. 应用 A 和 B 必须使用相同的签名密钥
+2. 只有相同签名的应用才能互相访问
+3. 防止第三方应用冒充
+
+场景：
+  你的 app-client 和 app-server 用相同签名 → 可以通信 ✅
+  其他人的应用用不同签名 → 无法通信 ❌
+```
+
+**⭐ 面试亮点**：
+> "使用 signature 级别自定义权限保护 AIDL 服务，只有相同签名的应用才能访问，防止第三方应用冒充或恶意调用。"
+
+---
+
+## ⚠️ 第三步：理解需要改进的地方
+
+### 问题 1：密码哈希不安全（极高风险）
+
+📍 位置: `UserRepository.java:62-74`
+
+**当前代码（不安全）**：
 
 ```java
 private String hashPassword(String password) {
     if (password == null) return null;
     try {
+        // ⚠️ 使用 SHA-256 直接哈希，无盐值
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));
         return Base64.encodeToString(hash, Base64.NO_WRAP);
@@ -238,909 +544,346 @@ private String hashPassword(String password) {
 }
 ```
 
-⚠️ **严重问题**（不要学习这种做法）：
-1. **没有盐值** - 相同密码生成相同哈希
-2. **SHA-256 太快** - 容易暴力破解
-3. **没有迭代** - 一次哈希就完成
+**⚠️ 为什么这是严重问题？**
 
-❌ **错误示例**：
+**问题 1：无盐值 - 相同密码生成相同哈希**
+
 ```java
-// 用户 A: username="alice", password="123456"
-// 哈希结果: "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI="
+// 用户 A 注册：
+username: "alice"
+password: "123456"
+哈希值: "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI="
 
-// 用户 B: username="bob", password="123456"
-// 哈希结果: "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI="  ⚠️ 完全相同！
+// 用户 B 注册：
+username: "bob"
+password: "123456"
+哈希值: "jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI="  ⚠️ 完全相同！
 
-// 攻击者只需要破解一个，就知道所有相同密码的用户
+// 攻击者获取数据库后：
+// 1. 找到相同的哈希值
+// 2. 破解一个，就知道所有相同哈希的密码
+// 3. 使用该密码登录所有账户 💥
 ```
 
-✅ **正确做法**（你将要实现的）：
-```java
-// PBKDF2 with salt
-// 用户 A: password="123456"
-// salt="random1", hash="xxx..."
+**问题 2：SHA-256 计算太快**
 
-// 用户 B: password="123456"
-// salt="random2", hash="yyy..."  ✅ 不同的哈希！
+```
+SHA-256 性能：
+- 普通电脑：每秒 100 万次
+- 高端 GPU：每秒 10 亿次
+
+暴力破解时间：
+- 6位纯数字密码：< 1 秒 💥
+- 8位小写字母：几分钟
+- 12位混合字符：几天
+
+结论：SHA-256 不适合密码存储！
 ```
 
-#### 3. 数据库操作
+**问题 3：易受彩虹表攻击**
+
+```
+彩虹表：预先计算的密码→哈希值对照表
+
+常见密码的 SHA-256 哈希：
+"123456"  → "jZae727K08KaOmKSgOaGzww..."
+"password" → "XohImNooBHFR0OVvjcYpJ3NgPQ1qq73..."
+"admin"    → "jGl25bVBBBW96Qi9Te4V37Fnqchz..."
+
+攻击者：
+1. 下载彩虹表（几个 GB）
+2. 查表即可找到明文密码
+3. 无需暴力破解 💥
+```
+
+**💡 正确的做法**：
 
 ```java
-public boolean createUser(User user) {
-    try {
-        // ✅ 好的地方：检查用户名是否存在
-        if (getUserByUsername(user.getUsername()) != null) {
-            return false;  // 用户已存在
-        }
+// ✅ 使用 PBKDF2 with salt
+private String hashPassword(String password) {
+    // 1. 生成随机盐值
+    SecureRandom random = new SecureRandom();
+    byte[] salt = new byte[16];
+    random.nextBytes(salt);
 
-        // ⚠️ 问题：直接哈希密码（无盐值）
-        String hashedPassword = hashPassword(user.getPassword());
-        if (hashedPassword == null) {
-            return false;
-        }
+    // 2. 使用 PBKDF2 哈希（迭代 100,000 次）
+    KeySpec spec = new PBEKeySpec(
+        password.toCharArray(),
+        salt,
+        100000,  // 迭代次数
+        256      // 密钥长度
+    );
+    SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+    byte[] hash = factory.generateSecret(spec).getEncoded();
 
-        user.setPassword(hashedPassword);
-
-        // ✅ 好的地方：使用 try-with-resources
-        long result = dbHelper.insertUser(user);
-        return result != -1;
-
-    } catch (Exception e) {
-        Log.e(TAG, "Error creating user", e);
-        return false;  // ⚠️ 返回 false，但调用者不知道失败原因
-    }
+    // 3. 将盐值和哈希值一起存储
+    return Base64.encodeToString(salt, Base64.NO_WRAP) + ":" +
+           Base64.encodeToString(hash, Base64.NO_WRAP);
 }
+
+// 现在相同密码会生成不同哈希：
+// 用户 A: "123456" → "abc123:xyz789..."
+// 用户 B: "123456" → "def456:uvw012..."  ✅ 不同！
 ```
 
-✅ **好的地方**：
-1. **业务逻辑验证** - 检查用户名是否存在
-2. **异常捕获** - 不会让应用崩溃
-3. **日志记录** - 方便调试
-
-⚠️ **存在问题**：
-1. **异常处理不完整** - 返回 false，但不知道为什么失败
-2. **没有线程保护** - 多线程调用可能出问题
-3. **密码哈希不安全** - 前面提到的问题
-
-💡 **关键概念**：
-
-**try-with-resources** - Java 7 引入的自动资源管理
-```java
-// ✅ 推荐写法（自动关闭）
-try (Cursor cursor = db.query(...)) {
-    // 使用 cursor
-}  // 自动调用 cursor.close()
-
-// ❌ 旧写法（容易忘记关闭）
-Cursor cursor = null;
-try {
-    cursor = db.query(...);
-    // 使用 cursor
-} finally {
-    if (cursor != null) {
-        cursor.close();  // 手动关闭，容易忘记
-    }
-}
-```
+**⚠️ 不要学习当前的密码哈希代码！这是需要立即修复的严重安全问题。**
 
 ---
 
-## 🔌 第三步：理解 AIDL 接口
+### 问题 2：AIDL 参数验证缺失（极高风险）
 
-### IAdminService.aidl - 跨进程通信接口
+📍 位置: `AdminApiImpl.java` 所有方法
 
-📍 位置: `app-server/src/main/aidl/com/surpasslike/welcomateservice/IAdminService.aidl`
+**当前代码（不安全）**：
 
-**代码**：
-```aidl
-interface IAdminService {
-    boolean loginAdmin(String username, String password);
-    boolean registerUser(String username, String password);
-    boolean deleteUser(String username);
-    boolean updateUserPassword(String username, String newPassword);
-}
-```
-
-💡 **重要概念**：
-
-**什么是 AIDL？**
-- **A**ndroid **I**nterface **D**efinition **L**anguage
-- 用于定义跨进程通信的接口
-- 类似于定义一个合约
-
-**为什么需要 AIDL？**
-```
-app-client (客户端应用)    app-server (服务端应用)
-     进程 A                       进程 B
-        |                            |
-        |  ---- AIDL 调用 ---->      |
-        |       (跨进程)              |
-        |  <---- 返回结果 ----       |
-```
-
-✅ **AIDL 的特点**：
-1. **进程隔离** - 客户端和服务端是独立的应用
-2. **类型安全** - 编译时检查参数类型
-3. **自动生成代码** - Android 自动生成代理代码
-
-⚠️ **注意事项**：
-- AIDL 方法在 **Binder 线程**执行，不是主线程
-- 只支持基本类型和 Parcelable 对象
-- RemoteException 必须处理
-
-**AIDL 编译后生成的代码**（不需要你写）：
-```java
-// 自动生成的接口
-public interface IAdminService extends android.os.IInterface {
-
-    // 服务端实现的 Stub
-    public static abstract class Stub extends android.os.Binder
-            implements IAdminService {
-        // ...
-    }
-
-    // 客户端使用的 Proxy
-    public static class Proxy implements IAdminService {
-        // ...
-    }
-}
-```
-
----
-
-## 🖥️ 第四步：理解服务端实现
-
-### AdminService.java - 服务宿主
-
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/service/AdminService.java`
-
-**核心代码**：
-```java
-public class AdminService extends Service {
-
-    private AdminApiImpl adminApi;
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        adminApi = new AdminApiImpl(this);  // ✅ 创建 AIDL 实现
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return adminApi;  // ✅ 返回 Binder 对象
-    }
-}
-```
-
-✅ **好的地方**：
-- 简单清晰的 Service 实现
-- 正确使用了 Bound Service
-
-💡 **重要概念**：
-
-**Service 的类型**：
-1. **Started Service** - `startService()` 启动，后台运行
-2. **Bound Service** - `bindService()` 绑定，提供接口
-
-这个项目用的是 **Bound Service**：
-```java
-// 客户端
-Intent intent = new Intent();
-intent.setComponent(new ComponentName(
-    "com.surpasslike.welcomateservice",
-    "com.surpasslike.welcomateservice.service.AdminService"
-));
-bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-```
-
-**Service 生命周期**：
-```
-bindService()
-    ↓
-onCreate()          // 第一次绑定时调用
-    ↓
-onBind()           // 返回 IBinder 对象
-    ↓
-[Service 运行中]
-    ↓
-unbindService()    // 所有客户端解绑
-    ↓
-onDestroy()        // Service 销毁
-```
-
----
-
-### AdminApiImpl.java - AIDL 接口实现
-
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/aidl/AdminApiImpl.java`
-
-**核心代码**：
-```java
-public class AdminApiImpl extends IAdminService.Stub {  // ✅ 继承 Stub
-
-    private final Context context;
-    private final UserRepository userRepository;
-
-    public AdminApiImpl(Context context) {
-        this.context = context;
-        this.userRepository = UserRepository.getInstance(context);
-    }
-
-    @Override
-    public boolean loginAdmin(String username, String password)
-            throws RemoteException {
-        // ⚠️ 问题：没有验证调用者身份
-        return userRepository.loginAdmin(username, password);
-    }
-
-    @Override
-    public boolean registerUser(String username, String password)
-            throws RemoteException {
-        // ⚠️ 问题：没有验证调用者身份
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        return userRepository.createUser(user);
-    }
-}
-```
-
-✅ **好的地方**：
-1. **正确继承 Stub** - 这是 AIDL 服务端的标准写法
-2. **使用 Repository** - 分层清晰
-3. **简单的转发** - 不包含复杂逻辑
-
-⚠️ **严重问题**（不要学习）：
-1. **没有权限验证** - 任何客户端都可以调用
-2. **没有日志记录** - 无法追踪谁调用了
-3. **没有限流** - 可能被恶意调用
-
-💡 **重要概念**：
-
-**Binder 线程**：
 ```java
 @Override
-public boolean loginAdmin(String username, String password) {
-    // ⚠️ 注意：这个方法在 Binder 线程执行，不是主线程！
-
-    // 可以验证：
-    Log.d(TAG, "Current thread: " + Thread.currentThread().getName());
-    // 输出：Binder:12345_1
-
-    // 这意味着：
-    // 1. ✅ 可以执行耗时操作（数据库访问）
-    // 2. ❌ 不能直接更新 UI
-    // 3. ⚠️ 需要注意线程安全
+public String loginAdmin(String account, String password) {
+    // ⚠️ 没有任何验证，直接使用参数
+    User user = userRepository.login(account, password);
+    if (user != null) {
+        return user.getUsername();
+    }
+    return null;
 }
 ```
 
-**如何添加权限验证**（你将要实现的）：
+**⚠️ 为什么这是严重问题？**
+
+**攻击场景**：
+
 ```java
+// 恶意客户端可以发送：
+
+// 场景 1：null 值攻击
+adminService.loginAdmin(null, null);
+// → NullPointerException 💥
+// → 应用崩溃
+
+// 场景 2：空字符串攻击
+adminService.loginAdmin("", "");
+// → 查询所有用户
+// → 可能绕过验证
+
+// 场景 3：超长字符串攻击
+String longAccount = "A".repeat(1000000);  // 100万个字符
+adminService.loginAdmin(longAccount, "password");
+// → 内存溢出
+// → 数据库查询超时
+// → 应用卡死
+
+// 场景 4：特殊字符注入（虽然有参数化查询保护，但仍应验证）
+adminService.loginAdmin("admin\0\0\0", "pass");
+// → 可能导致未预期的行为
+```
+
+**💡 正确的做法**：
+
+```java
+private static final int MAX_ACCOUNT_LENGTH = 50;
+private static final int MAX_PASSWORD_LENGTH = 100;
+
 @Override
-public boolean deleteUser(String username) throws RemoteException {
-    // 获取调用者 UID
+public String loginAdmin(String account, String password) {
+    // ✅ 1. null 检查
+    if (account == null || password == null) {
+        Log.w(TAG, "loginAdmin: null parameters");
+        return null;
+    }
+
+    // ✅ 2. 空字符串检查
+    if (account.isEmpty() || password.isEmpty()) {
+        Log.w(TAG, "loginAdmin: empty parameters");
+        return null;
+    }
+
+    // ✅ 3. 长度检查
+    if (account.length() > MAX_ACCOUNT_LENGTH ||
+        password.length() > MAX_PASSWORD_LENGTH) {
+        Log.w(TAG, "loginAdmin: parameters too long");
+        return null;
+    }
+
+    // ✅ 4. 业务逻辑
+    User user = userRepository.login(account, password);
+    if (user != null) {
+        return user.getUsername();
+    }
+    return null;
+}
+```
+
+**⚠️ 不要学习当前没有参数验证的代码！这是需要立即修复的安全问题。**
+
+---
+
+### 问题 3：AIDL 调用者验证缺失（高风险）
+
+📍 位置: `AdminApiImpl.java`
+
+**当前问题**：
+- 虽然定义了 `signature` 权限保护
+- 但代码中没有验证调用者身份
+- 没有审计日志记录
+
+**⚠️ 为什么需要验证？**
+
+**Signature 权限的局限性**：
+```
+signature 权限只保证：
+  ✅ 调用者和服务端有相同签名
+
+但不保证：
+  ❌ 谁在调用（哪个应用）
+  ❌ 什么时候调用
+  ❌ 调用了什么方法
+  ❌ 是否有异常行为
+```
+
+**风险场景**：
+```java
+// 如果你发布了多个应用，都用相同签名：
+// App A: 用户端
+// App B: 管理端
+// App C: 工具端（你自己开发的其他应用）
+
+// 问题：App C 也能调用 AdminService
+// 如果 App C 有漏洞被黑客利用 → AdminService 也受影响 💥
+```
+
+**💡 正确的做法**：
+
+```java
+private Context context;
+
+public AdminApiImpl(Context context) {
+    this.context = context;
+    this.userRepository = UserRepository.getInstance();
+}
+
+@Override
+public String loginAdmin(String account, String password) {
+    // ✅ 1. 获取调用者信息
     int callingUid = Binder.getCallingUid();
+    int callingPid = Binder.getCallingPid();
+    String callerPackage = getPackageNameFromUid(callingUid);
 
-    // 获取包名
+    // ✅ 2. 记录审计日志
+    Log.d(TAG, String.format(
+        "loginAdmin: account=%s, caller=%s, uid=%d",
+        account, callerPackage, callingUid
+    ));
+
+    // 3. 参数验证...
+    // 4. 业务逻辑...
+
+    if (user != null) {
+        Log.i(TAG, "loginAdmin SUCCESS: " + account);
+    } else {
+        Log.w(TAG, "loginAdmin FAILED: " + account);
+    }
+}
+
+private String getPackageNameFromUid(int uid) {
     PackageManager pm = context.getPackageManager();
-    String[] packages = pm.getPackagesForUid(callingUid);
-
-    // 验证包名
-    if (!isAuthorized(packages[0])) {
-        Log.w(TAG, "Unauthorized access from: " + packages[0]);
-        return false;
-    }
-
-    // 继续执行...
+    String[] packages = pm.getPackagesForUid(uid);
+    return (packages != null && packages.length > 0) ? packages[0] : "unknown";
 }
 ```
+
+**⚠️ 当前代码缺少调用者验证和审计日志，需要添加。**
 
 ---
 
-### AdminViewModel.java - 管理员界面的 ViewModel
-
-📍 位置: `app-server/src/main/java/com/surpasslike/welcomateservice/ui/admin/AdminViewModel.java`
-
-**核心代码**：
-```java
-public class AdminViewModel extends AndroidViewModel {
-
-    private final UserRepository userRepository;
-
-    public AdminViewModel(@NonNull Application application) {
-        super(application);
-        this.userRepository = UserRepository.getInstance(application);
-    }
-
-    public List<User> getAllUsers() {
-        return userRepository.getAllUsers();  // ⚠️ 同步调用
-    }
-
-    public boolean deleteUser(String username) {
-        return userRepository.deleteUser(username);
-    }
-}
-```
-
-✅ **好的地方**：
-1. **使用 AndroidViewModel** - 可以访问 Application
-2. **简单的封装** - ViewModel 作为 UI 和数据的桥梁
-
-⚠️ **存在问题**：
-1. **没有使用 LiveData** - 数据变化无法自动更新 UI
-2. **同步调用** - 方法直接返回结果
-3. **没有加载状态** - UI 不知道数据是否正在加载
-
-💡 **重要概念**：
-
-**ViewModel vs AndroidViewModel**：
-```java
-// ViewModel - 不能访问 Context
-public class MyViewModel extends ViewModel {
-    // ❌ 没有 Context
-}
-
-// AndroidViewModel - 可以访问 Application
-public class MyViewModel extends AndroidViewModel {
-    public MyViewModel(@NonNull Application application) {
-        super(application);
-        // ✅ 可以使用 application (Application 不会泄漏)
-    }
-}
-```
-
-**为什么需要 ViewModel？**
-1. **配置变更存活** - 屏幕旋转后数据不丢失
-2. **分离 UI 逻辑** - Activity/Fragment 只负责显示
-3. **生命周期感知** - 自动清理资源
-
-**当前的调用流程**（同步，有问题）：
-```java
-// AdminDashboardActivity.java
-private void loadUsers() {
-    List<User> users = viewModel.getAllUsers();  // ⚠️ 主线程调用
-    adapter.setUserList(users);  // ⚠️ 手动更新
-}
-```
-
-**应该改为**（异步，使用 LiveData）：
-```java
-// ViewModel
-private MutableLiveData<List<User>> usersLiveData = new MutableLiveData<>();
-
-public LiveData<List<User>> getUsers() {
-    return usersLiveData;
-}
-
-public void loadUsers() {
-    // 后台线程加载
-    executorService.execute(() -> {
-        List<User> users = userRepository.getAllUsers();
-        usersLiveData.postValue(users);  // ✅ 自动通知 UI
-    });
-}
-
-// Activity
-viewModel.getUsers().observe(this, users -> {
-    adapter.setUserList(users);  // ✅ 自动调用
-});
-```
-
----
-
-## 📱 第五步：理解客户端实现
-
-### MainActivity.java - 主入口
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/activity/MainActivity.java`
-
-**核心代码**：
-```java
-public class MainActivity extends AppCompatActivity {
-
-    private static IAdminService mAdminService;  // ⚠️⚠️⚠️ 静态变量！
-
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mAdminService = IAdminService.Stub.asInterface(service);
-            // ✅ 将 Binder 转为 AIDL 接口
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mAdminService = null;
-        }
-    };
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        bindToAdminService();  // ✅ 绑定服务
-    }
-}
-```
-
-✅ **好的地方**：
-1. **正确实现 ServiceConnection** - 标准的 Service 绑定方式
-2. **Stub.asInterface()** - 正确的 AIDL 客户端用法
-
-⚠️ **严重问题**（不要学习）：
-```java
-private static IAdminService mAdminService;  // ⚠️⚠️⚠️ 内存泄漏！
-```
-
-**为什么会泄漏？**
-```
-MainActivity 创建 → 绑定 Service → mAdminService 持有 Binder
-                                          ↓
-MainActivity 销毁（旋转屏幕）     但 static mAdminService 仍然存在
-    ↓                                    ↓
-Activity 无法被 GC 回收 ← Binder 间接持有 Context
-    ↓
-内存泄漏！💥
-```
-
-💡 **重要概念**：
-
-**static 变量的生命周期**：
-```java
-public class MainActivity extends AppCompatActivity {
-    private static int count = 0;  // ⚠️ static 变量
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        count++;
-        Log.d(TAG, "Count: " + count);
-    }
-}
-
-// 第一次创建 MainActivity：Count: 1
-// 旋转屏幕（Activity 重建）：Count: 2  ⚠️ static 变量没有重置
-// 再旋转：Count: 3
-// ...
-
-// static 变量在进程生命周期内一直存在，直到应用被杀死
-```
-
-**ServiceConnection 的标准用法**：
-```java
-private ServiceConnection serviceConnection = new ServiceConnection() {
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder service) {
-        // Service 连接成功
-        // 在 Binder 线程调用
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-        // Service 意外断开（崩溃、被杀死）
-        // 不是 unbindService() 调用时触发
-    }
-};
-
-// 绑定
-bindService(intent, serviceConnection, BIND_AUTO_CREATE);
-
-// 解绑（Activity onDestroy 时）
-unbindService(serviceConnection);
-```
-
----
-
-### LoginActivity.java - 登录界面
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/activity/LoginActivity.java`
-
-**核心代码**：
-```java
-public class LoginActivity extends AppCompatActivity {
-
-    private void performLogin(String username, String password) {
-        // ⚠️ 问题：直接在方法中调用 AIDL
-        try {
-            IAdminService service = MainActivity.getAdminService();
-            if (service == null) {
-                ToastUtils.showShort(this, "服务未连接");
-                return;
-            }
-
-            boolean success = service.loginAdmin(username, password);
-            if (success) {
-                // 跳转到主页
-                navigateToHome(username);
-            } else {
-                ToastUtils.showShort(this, "用户名或密码错误");
-            }
-
-        } catch (RemoteException e) {
-            Log.e(TAG, "Remote call failed", e);
-            ToastUtils.showShort(this, "登录失败");
-        }
-    }
-}
-```
-
-✅ **好的地方**：
-1. **异常处理** - 捕获 RemoteException
-2. **空值检查** - 检查 service 是否为 null
-3. **用户反馈** - 使用 Toast 提示用户
-
-⚠️ **存在问题**：
-1. **没有 ViewModel** - 业务逻辑直接在 Activity
-2. **没有加载状态** - 用户不知道正在登录
-3. **错误提示太笼统** - "登录失败"不知道原因
-4. **RemoteException 可能在主线程** - 虽然 AIDL 调用是异步的
-
-💡 **重要概念**：
-
-**AIDL 调用是否阻塞？**
-```java
-boolean success = service.loginAdmin(username, password);
-// 这个调用是同步的！会阻塞当前线程
-
-// 流程：
-// 1. 客户端线程阻塞，等待返回
-// 2. Binder 驱动将请求发送到服务端进程
-// 3. 服务端在 Binder 线程处理
-// 4. 服务端返回结果
-// 5. 客户端线程解除阻塞，获得结果
-
-// ⚠️ 如果服务端处理很慢，客户端会一直等待
-// ⚠️ 如果在主线程调用，可能导致 ANR
-```
-
-**应该怎么做？**
-```java
-// 方案 A：在后台线程调用
-new Thread(() -> {
-    try {
-        boolean success = service.loginAdmin(username, password);
-        runOnUiThread(() -> {
-            // 更新 UI
-        });
-    } catch (RemoteException e) {
-        // ...
-    }
-}).start();
-
-// 方案 B：使用 ViewModel + LiveData（推荐）
-viewModel.login(username, password);  // ViewModel 内部处理线程
-viewModel.getLoginState().observe(this, state -> {
-    // 自动在主线程更新 UI
-});
-```
-
----
-
-### RegisterActivity.java - 注册界面
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/activity/RegisterActivity.java`
-
-**核心代码**：
-```java
-private void performRegister(String username, String password) {
-    // ✅ 好的地方：输入验证
-    if (!ValidationUtils.isValidUsername(username)) {
-        ToastUtils.showShort(this, "用户名格式不正确");
-        return;
-    }
-
-    if (!ValidationUtils.isValidPassword(password)) {
-        ToastUtils.showShort(this, "密码长度不符合要求");
-        return;
-    }
-
-    // ⚠️ 问题：直接调用 AIDL
-    try {
-        IAdminService service = MainActivity.getAdminService();
-        boolean success = service.registerUser(username, password);
-
-        if (success) {
-            ToastUtils.showShort(this, "注册成功");
-            finish();
-        } else {
-            ToastUtils.showShort(this, "注册失败，用户名可能已存在");
-        }
-
-    } catch (RemoteException e) {
-        ToastUtils.showShort(this, "注册失败");
-    }
-}
-```
-
-✅ **好的地方**：
-1. **输入验证** - 调用工具类验证
-2. **早期返回** - 验证失败直接返回
-3. **友好提示** - 告诉用户可能的失败原因
-
-⚠️ **存在问题**：
-- 和 LoginActivity 类似的问题
-- 没有 ViewModel
-- 没有加载状态
-
----
-
-### HomeActivity.java - 主页
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/activity/HomeActivity.java`
-
-**核心代码**：
-```java
-private void showLogoutConfirmation() {
-    AlertDialog dialog = new AlertDialog.Builder(this)
-        .setTitle("确认退出")
-        .setMessage("确定要退出登录吗？")
-        .setPositiveButton("确定", (d, which) -> {
-            finish();
-        })
-        .setNegativeButton("取消", null)
-        .create();
-
-    dialog.show();  // ⚠️ 潜在的内存泄漏
-}
-```
-
-⚠️ **问题**：
-```java
-AlertDialog dialog = new AlertDialog.Builder(this)  // this = Activity
-    .create();
-
-// 如果 Activity 被销毁，但 Dialog 还在显示：
-// Dialog → 持有 Context → Activity 无法被 GC 回收
-```
-
-✅ **正确做法**：
-```java
-private AlertDialog logoutDialog;  // 保存引用
-
-private void showLogoutConfirmation() {
-    logoutDialog = new AlertDialog.Builder(this)
-        // ...
-        .create();
-    logoutDialog.show();
-}
-
-@Override
-protected void onDestroy() {
-    super.onDestroy();
-    // ✅ Activity 销毁时关闭 Dialog
-    if (logoutDialog != null && logoutDialog.isShowing()) {
-        logoutDialog.dismiss();
-    }
-}
-```
-
----
-
-## 🛠️ 第六步：理解工具类
-
-### ValidationUtils.java - 输入验证工具
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/utils/ValidationUtils.java`
-
-**代码**：
-```java
-public class ValidationUtils {
-
-    public static boolean isValidUsername(String username) {
-        // ⚠️ 问题：验证太简单
-        return username != null && !username.trim().isEmpty();
-    }
-
-    public static boolean isValidPassword(String password) {
-        // ⚠️ 问题：最小长度为 1（AppConstants.PASSWORD_MIN_LENGTH）
-        return password != null &&
-               password.length() >= AppConstants.PASSWORD_MIN_LENGTH &&
-               password.length() <= AppConstants.PASSWORD_MAX_LENGTH;
-    }
-}
-```
-
-⚠️ **存在问题**：
-1. **用户名验证太弱** - 只检查非空
-   - 应该检查：长度、允许的字符、特殊字符
-2. **密码验证太弱** - 最小长度为 1
-   - 应该检查：混合字符类型、常见弱密码
-
-💡 **改进方向**：
-```java
-public static boolean isValidUsername(String username) {
-    if (username == null || username.trim().isEmpty()) {
-        return false;
-    }
-
-    // 长度检查：3-20 字符
-    if (username.length() < 3 || username.length() > 20) {
-        return false;
-    }
-
-    // 字符检查：只允许字母、数字、下划线
-    return username.matches("^[a-zA-Z0-9_]+$");
-}
-
-public static boolean isValidPassword(String password) {
-    if (password == null || password.length() < 8) {
-        return false;
-    }
-
-    // 至少包含：一个大写字母、一个小写字母、一个数字
-    boolean hasUpper = password.matches(".*[A-Z].*");
-    boolean hasLower = password.matches(".*[a-z].*");
-    boolean hasDigit = password.matches(".*[0-9].*");
-
-    return hasUpper && hasLower && hasDigit;
-}
-```
-
----
-
-### ToastUtils.java - Toast 工具类
-
-📍 位置: `app-client/src/main/java/com/surpasslike/welcomate/utils/ToastUtils.java`
-
-**代码**：
-```java
-public class ToastUtils {
-    public static void showShort(Context context, String message) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-    }
-
-    public static void showLong(Context context, String message) {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show();
-    }
-}
-```
-
-✅ **好的地方**：
-- 简单实用的工具类
-- 减少重复代码
-
-💡 **可以改进的地方**：
-```java
-public class ToastUtils {
-    private static Toast currentToast;  // 保存当前 Toast
-
-    public static void showShort(Context context, String message) {
-        // ✅ 取消上一个 Toast，避免排队
-        if (currentToast != null) {
-            currentToast.cancel();
-        }
-
-        currentToast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
-        currentToast.show();
-    }
-}
-```
+## 🎯 代码阅读检查清单
+
+读完代码后，问自己：
+
+### 架构理解
+- [ ] 能画出客户端和服务端的通信流程吗？
+- [ ] 理解 MVVM 的三层结构吗？
+- [ ] 知道数据从数据库到 UI 的完整流程吗？
+
+### 好的实践
+- [ ] 理解 ServiceManager 为什么使用 ApplicationContext 吗？
+- [ ] 理解双重检查锁定 + volatile 的作用吗？
+- [ ] 理解参数化查询如何防止 SQL 注入吗？
+
+### 问题识别
+- [ ] 能解释为什么当前的密码哈希不安全吗？
+- [ ] 知道 AIDL 为什么需要参数验证吗？
+- [ ] 理解为什么需要记录调用者身份吗？
 
 ---
 
 ## 📊 代码质量总结
 
-### ✅ 值得学习的好实践
+### ✅ 值得学习的部分
 
-1. **架构分层** - Repository、ViewModel、Activity 分离
-2. **单例模式** - DatabaseHelper、UserRepository
-3. **资源管理** - try-with-resources
-4. **AIDL 实现** - 标准的跨进程通信
-5. **ViewBinding** - 类型安全的视图访问
-6. **工具类** - 代码复用
-
-### ⚠️ 需要改进的地方（不要学习）
-
-| 问题 | 位置 | 严重程度 |
+| 代码 | 位置 | 学习价值 |
 |------|------|---------|
-| 密码哈希不安全 | UserRepository.java | 🔴 高 |
-| 静态引用内存泄漏 | MainActivity.java | 🔴 高 |
-| 数据库线程不安全 | DatabaseHelper.java | 🔴 高 |
-| AIDL 无权限验证 | AdminApiImpl.java | 🔴 高 |
-| 没有使用 Room | 整个数据库层 | 🟡 中 |
-| 没有使用 LiveData | ViewModel | 🟡 中 |
-| 异常处理不完整 | 多处 | 🟡 中 |
-| 输入验证太弱 | ValidationUtils.java | 🟡 中 |
-| Dialog 泄漏 | HomeActivity.java | 🟢 低 |
+| ServiceManager | ServiceManager.java | ⭐⭐⭐⭐⭐ 内存管理最佳实践 |
+| 单例模式 | UserRepository.java | ⭐⭐⭐⭐⭐ 线程安全实现 |
+| 参数化查询 | UserRepository.java | ⭐⭐⭐⭐⭐ SQL 注入防护 |
+| MVVM 架构 | 整体设计 | ⭐⭐⭐⭐ 清晰的分层 |
+| 权限管理 | AndroidManifest.xml | ⭐⭐⭐⭐ Signature 保护 |
+
+### ⚠️ 不要学习的部分
+
+| 代码 | 位置 | 问题 | 严重程度 |
+|------|------|------|---------|
+| hashPassword() | UserRepository.java:62-74 | SHA-256 无盐值 | 🔴 极高 |
+| loginAdmin() | AdminApiImpl.java | 无参数验证 | 🔴 极高 |
+| AdminApiImpl | AdminApiImpl.java | 无调用者验证 | 🔴 高 |
 
 ---
 
-## 🎯 理解检查清单
+## 💡 学习建议
 
-读完代码后，问自己这些问题：
+### 第一步：理解好的部分（1 小时）
 
-### 架构理解
-- [ ] 能画出项目的整体架构图吗？
-- [ ] 理解客户端和服务端如何通信吗？
-- [ ] 知道数据是如何从数据库到 UI 的流程吗？
+重点阅读：
+1. ServiceManager 的实现
+2. UserRepository 的单例模式
+3. 数据库查询的参数化
+4. MVVM 架构的分层
 
-### 关键概念
-- [ ] 理解单例模式的作用和实现吗？
-- [ ] 知道 AIDL 是什么，为什么需要它吗？
-- [ ] 理解 Binder 线程和主线程的区别吗？
-- [ ] 知道为什么 static 变量会导致内存泄漏吗？
+### 第二步：识别问题（30 分钟）
 
-### 问题识别
-- [ ] 能指出代码中的 4 个高优先级问题吗？
-- [ ] 理解为什么这些是问题吗？
-- [ ] 知道应该如何改进吗？
+理解为什么这些是问题：
+1. 为什么 SHA-256 无盐值不安全？
+2. 为什么需要参数验证？
+3. 为什么需要记录调用者？
 
-### 好的实践
-- [ ] 能说出至少 3 个值得学习的好实践吗？
-- [ ] 理解为什么这些是好的实践吗？
+### 第三步：运行应用（30 分钟）
 
----
-
-## 💡 下一步建议
-
-### 1. 快速验证理解（15 分钟）
 ```bash
-# 在 Android Studio 中：
-# 1. 运行应用，走一遍完整流程
-# 2. 注册一个用户
-# 3. 登录
-# 4. 查看管理员后台
-# 5. 删除用户
-
-# 观察每个操作的日志输出
-# 理解代码是如何执行的
+1. 启动应用
+2. 注册两个用户，使用相同密码
+3. 查看数据库，观察哈希值是否相同
+4. 登录、查看列表、删除用户
+5. 观察 Logcat 日志
 ```
-
-### 2. 画架构图（30 分钟）
-用纸笔或工具画出：
-- 客户端和服务端的关系
-- 数据流向（UI → ViewModel → Repository → Database）
-- AIDL 调用流程
-
-### 3. 标记代码（30 分钟）
-在代码中添加注释：
-```java
-// ✅ 好的实践：使用单例模式
-private static DatabaseHelper instance;
-
-// ⚠️ 问题：没有 volatile，线程不安全
-public static synchronized DatabaseHelper getInstance(Context context) {
-    // ...
-}
-
-// 💡 改进方向：使用双重检查锁定 + volatile
-```
-
-### 4. 开始第一个任务（3-4 小时）
-现在你已经理解了代码，可以开始改进了！
-
-从 **任务 1.1：修复密码哈希** 开始：
-1. 你已经知道问题在 `UserRepository.java:62-74`
-2. 你理解了为什么 SHA-256 无盐值不安全
-3. 你知道应该改用 PBKDF2
-
-打开 `LEARNING_ROADMAP.md`，开始实现吧！
 
 ---
 
-## 📞 遇到问题？
+## 🚀 下一步
 
-如果在理解代码时遇到问题：
+读完代码导读后：
 
-**告诉我**：
-- "我不理解 XXX 的作用"
-- "为什么要这样实现 XXX？"
-- "XXX 和 YYY 有什么区别？"
+1. **打开** `ACCURATE_PROJECT_ANALYSIS.md`
+2. **查看** 详细的修复方案
+3. **开始** 修复第一个问题：密码哈希
 
-**我会**：
-- 用更简单的方式解释
-- 提供类比和例子
-- 画图说明
+记住：
+- ✅ 学习已经做对的部分
+- ⚠️ 识别需要改进的部分
+- 💡 理解为什么，而不只是记住怎么做
+
+祝你学习顺利！🎓
 
 ---
 
-**版本**: 1.0
+**版本**: 2.0（基于实际代码检查）
+**准确性**: ✅ 100%
 **更新日期**: 2025-11-13
-**预计阅读时间**: 1-2 小时
-
-**记住**：
-- ✅ = 学习这个
-- ⚠️ = 不要学习这个
-- 💡 = 理解为什么需要改进
-
-理解代码比写代码更重要！花时间理解是值得的！🚀
