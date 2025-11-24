@@ -1,6 +1,8 @@
 package com.surpasslike.welcomate;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
+import android.content.Context;
 
 import com.surpasslike.welcomate.service.ServiceManager;
 
@@ -10,20 +12,26 @@ import com.surpasslike.welcomate.service.ServiceManager;
  */
 public class WelcomateApplication extends Application {
     private static final String TAG = "WelcomateApplication";
-    
+    @SuppressLint("StaticFieldLeak")
+    private static Context mContext;
+
     @Override
     public void onCreate() {
         super.onCreate();
-        
+        mContext = getApplicationContext();
         // 初始化ServiceManager
-        ServiceManager.getInstance().initialize(this);
+        ServiceManager.getInstance().initialize(mContext);
     }
-    
+
     @Override
     public void onTerminate() {
         super.onTerminate();
-        
+
         // 释放ServiceManager资源
         ServiceManager.getInstance().release();
+    }
+
+    public static Context getContext() {
+        return mContext;
     }
 }
