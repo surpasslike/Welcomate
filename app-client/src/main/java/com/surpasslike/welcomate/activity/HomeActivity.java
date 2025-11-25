@@ -1,5 +1,6 @@
 package com.surpasslike.welcomate.activity;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,7 +16,9 @@ import android.widget.EditText;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityHomeBinding;
+import com.surpasslike.welcomate.note.fragment.NoteListFragment;
 import com.surpasslike.welcomate.service.ServiceManager;
+import com.surpasslike.welcomate.utils.FragmentNavigationUtil;
 import com.surpasslike.welcomate.utils.ToastUtils;
 import com.surpasslike.welcomate.utils.ValidationUtils;
 import com.surpasslike.welcomateservice.IAdminService;
@@ -47,12 +50,37 @@ public class HomeActivity extends AppCompatActivity {
 
         // 获取传递的用户名
         String username = getIntent().getStringExtra(AppConstants.IntentExtra.USERNAME);
-        
+
         // 获取ServiceManager实例
         mServiceManager = ServiceManager.getInstance();
-        
+
+        // 设置返回键处理
+        setupBackPressedCallback();
+
         // 初始化界面
         initViews(username);
+    }
+
+    /**
+     * 设置返回键处理
+     * 当 Fragment 栈中有内容时，返回主页面；否则退出 Activity
+     */
+    private void setupBackPressedCallback() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+                    // Fragment 栈中有内容，返回并显示主页面
+                    getSupportFragmentManager().popBackStack();
+                    mActivityHomeBinding.containerLayout.setVisibility(View.VISIBLE);
+                    mActivityHomeBinding.fragmentContainer.setVisibility(View.GONE);
+                } else {
+                    // Fragment 栈为空，退出 Activity
+                    setEnabled(false);  // 禁用此 callback
+                    getOnBackPressedDispatcher().onBackPressed();  // 触发默认返回行为
+                }
+            }
+        });
     }
     
     /**
@@ -63,6 +91,19 @@ public class HomeActivity extends AppCompatActivity {
         // 设置欢迎消息
         String welcomeMessage = getString(R.string.welcome_message, username);
         mActivityHomeBinding.tvWelcomeMessage.setText(welcomeMessage);
+
+        // 进入记事本
+        mActivityHomeBinding.btnNote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 隐藏主页面内容
+                mActivityHomeBinding.containerLayout.setVisibility(View.GONE);
+                // 显示 Fragment 容器
+                mActivityHomeBinding.fragmentContainer.setVisibility(View.VISIBLE);
+                // 跳转到笔记列表
+                FragmentNavigationUtil.goToFragment(getSupportFragmentManager(), new NoteListFragment());
+            }
+        });
 
         // 设置修改密码按钮点击事件
         mActivityHomeBinding.btnChangePassword.setOnClickListener(new View.OnClickListener() {

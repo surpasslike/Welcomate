@@ -58,4 +58,5 @@
     <string name="password_too_long">Password must be less than %1$d characters</string>
     <string name="account_empty">Account cannot be empty</string>
     <string name="tv_note_list_title_text">%s\'s notes</string>
+    <string name="button_my_note">我的笔记</string>
 </resources>

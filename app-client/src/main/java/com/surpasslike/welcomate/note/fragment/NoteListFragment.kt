@@ -1,4 +1,4 @@
-package com.surpasslike.welcomate.note.activity
+package com.surpasslike.welcomate.note.fragment
 
 import com.surpasslike.welcomate.base.view.BaseFragment
 import com.surpasslike.welcomate.databinding.FragmentNoteListBinding

@@ -58,4 +58,5 @@
     <string name="password_too_long">密码不能超过 %1$d 个字符</string>
     <string name="account_empty">账号不能为空</string>
     <string name="tv_note_list_title_text">%s的笔记</string>
+    <string name="button_my_note">我的笔记</string>
 </resources>
