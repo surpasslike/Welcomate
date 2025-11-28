@@ -27,6 +27,9 @@ import com.surpasslike.welcomate.note.entity.NoteBean
  */
 class NoteAdapter : ListAdapter<NoteBean, NoteAdapter.ViewHolder>(NoteDiffCallback()) {
 
+    // 点击编辑声纹的回调，参数为 list 中的下标
+    var onRootClickAction: ((Int) -> Unit)? = null
+
     /**
      * 创建 ViewHolder
      * 当 RecyclerView 需要新的 ViewHolder 时调用（例如首次显示或滚动时）
@@ -79,10 +82,10 @@ class NoteAdapter : ListAdapter<NoteBean, NoteAdapter.ViewHolder>(NoteDiffCallba
             binding.tvCreateTime.text = bean.createTime
             binding.tvUpdateTime.text = bean.updateTime
 
-            // 可以在这里添加点击事件：
-            // binding.root.setOnClickListener {
-            //     // 处理点击事件，例如跳转到编辑页面
-            // }
+            binding.root.setOnClickListener {
+                // 设置点击Item的监听，传递对应的下标
+                onRootClickAction?.invoke(layoutPosition)
+            }
         }
     }
 
