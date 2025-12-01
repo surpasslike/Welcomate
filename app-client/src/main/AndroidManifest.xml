@@ -26,6 +26,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Welcomate">
         <activity
+            android:name=".note.activity.NoteActivity"
+            android:exported="false" />
+        <activity
             android:name=".activity.RegisterActivity"
             android:exported="false" />
         <activity

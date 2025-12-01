@@ -16,6 +16,13 @@
         android:textStyle="bold" />
 
     <Button
+        android:id="@+id/btnNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/button_my_note" />
+
+    <Button
         android:id="@+id/btnSetting"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

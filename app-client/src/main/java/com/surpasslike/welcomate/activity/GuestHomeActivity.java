@@ -9,6 +9,7 @@ import android.view.View;
 import com.surpasslike.welcomate.R;
 import com.surpasslike.welcomate.constants.AppConstants;
 import com.surpasslike.welcomate.databinding.ActivityGuestHomeBinding;
+import com.surpasslike.welcomate.note.activity.NoteActivity;
 
 /**
  * 游客主页面
@@ -43,6 +44,17 @@ public class GuestHomeActivity extends AppCompatActivity {
     private void initViews() {
         // 设置欢迎消息
         mActivityGuestHomeBinding.tvWelcomeMessage.setText(R.string.welcome_guest);
+
+        // 进入记事本
+        mActivityGuestHomeBinding.btnNote.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // 登录成功后跳转到HomeActivity并传递用户名
+                Intent intent = new Intent(GuestHomeActivity.this, NoteActivity.class);
+                intent.putExtra(AppConstants.IntentExtra.USERNAME, "游客模式");
+                startActivity(intent);
+            }
+        });
 
         // 设置设置按钮点击事件
         mActivityGuestHomeBinding.btnSetting.setOnClickListener(new View.OnClickListener() {
