@@ -59,4 +59,6 @@
     <string name="account_empty">账号不能为空</string>
     <string name="tv_note_list_title_text">%s的笔记</string>
     <string name="button_my_note">我的笔记</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment" translatable="false">Hello blank fragment</string>
 </resources>
