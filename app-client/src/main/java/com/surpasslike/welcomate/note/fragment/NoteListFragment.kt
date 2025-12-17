@@ -2,11 +2,8 @@ package com.surpasslike.welcomate.note.fragment
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.LinearLayout
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager.VERTICAL
-import androidx.recyclerview.widget.RecyclerView
 import com.surpasslike.welcomate.R
 import com.surpasslike.welcomate.base.view.BaseFragment
 import com.surpasslike.welcomate.constants.AppConstants
@@ -14,6 +11,7 @@ import com.surpasslike.welcomate.databinding.FragmentNoteListBinding
 import com.surpasslike.welcomate.note.adapter.NoteAdapter
 import com.surpasslike.welcomate.note.entity.NoteBean
 import com.surpasslike.welcomate.note.vm.NoteViewModel
+import com.surpasslike.welcomate.utils.DialogUtils
 
 class NoteListFragment : BaseFragment<FragmentNoteListBinding>() {
 
@@ -60,6 +58,8 @@ class NoteListFragment : BaseFragment<FragmentNoteListBinding>() {
 
         btnAddNote.setOnClickListener {
             // todo show一个添加笔记的弹窗
+            val addNoteDialogFragment = AddNoteDialogFragment()
+            DialogUtils.showDialogFragment(childFragmentManager, addNoteDialogFragment)
         }
     }
 
