@@ -1,5 +1,6 @@
 package com.surpasslike.welcomate.note.vm
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -7,13 +8,15 @@ import com.surpasslike.welcomate.note.data.NoteRepository
 import com.surpasslike.welcomate.note.entity.NoteBean
 
 class NoteViewModel : ViewModel() {
-    val TAG = "NoteViewModel"
-
+    private val TAG = "NoteViewModel"
     private val repository = NoteRepository.getInstance()
 
     private val _noteLiveData = MutableLiveData<List<NoteBean>>()
     val noteLiveData: LiveData<List<NoteBean>> = _noteLiveData
 
+    /*
+    * 加载笔记
+    * */
     fun loadNotes() {
         val repositoryNotes = repository.allNotes
         // 这个是数据库里面的note格式,也就是List<Note>, 而不是List<NoteBean>
@@ -34,8 +37,11 @@ class NoteViewModel : ViewModel() {
         _noteLiveData.value = noteBeans
     }
 
-
-
-
-
+    /*
+    * 添加笔记
+    * */
+    fun addNotes(title: String, content: String) {
+        Log.d(TAG, "addNotes title = $title, content = $content")
+        repository.addNote(title, content)
+    }
 }
