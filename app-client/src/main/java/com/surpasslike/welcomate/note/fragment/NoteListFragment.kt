@@ -9,7 +9,7 @@ import com.surpasslike.welcomate.base.view.BaseFragment
 import com.surpasslike.welcomate.constants.AppConstants
 import com.surpasslike.welcomate.databinding.FragmentNoteListBinding
 import com.surpasslike.welcomate.note.adapter.NoteAdapter
-import com.surpasslike.welcomate.note.entity.NoteBean
+import com.surpasslike.welcomate.note.data.Note
 import com.surpasslike.welcomate.note.vm.NoteViewModel
 import com.surpasslike.welcomate.utils.DialogUtils
 
@@ -63,7 +63,7 @@ class NoteListFragment : BaseFragment<FragmentNoteListBinding>() {
         }
     }
 
-    private fun refreshView(noteBeanList: List<NoteBean>) {
-        noteAdapter.submitList(noteBeanList)
+    private fun refreshView(NoteList: List<Note>) {
+        noteAdapter.submitList(NoteList)
     }
 }
